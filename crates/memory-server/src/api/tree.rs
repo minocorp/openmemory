@@ -5,7 +5,7 @@ use memory_api::{Problem, TreeFile, TreeFolder, TreePage, TreeView};
 use utoipa::OpenApi;
 
 use crate::api::error::ApiError;
-use crate::auth::WebSession;
+use crate::auth::ApiSession;
 use crate::files::FileRecord;
 use crate::pages::listing::PageSummary;
 use crate::state::AppState;
@@ -60,12 +60,12 @@ fn tree_file(file: FileRecord) -> TreeFile {
     get,
     path = "/api/tree",
     tag = "tree",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     responses((status = 200, body = TreeView), (status = 401, body = Problem, content_type = "application/problem+json"))
 )]
 async fn get_tree(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
 ) -> Result<Json<TreeView>, ApiError> {
     let tree = tree::load(state.pool(), state.files(), &session.actor).await?;
     Ok(Json(tree_view(tree)))

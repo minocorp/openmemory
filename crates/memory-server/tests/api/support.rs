@@ -83,6 +83,30 @@ impl App {
         read(self.router.clone().oneshot(request).await?).await
     }
 
+    pub(crate) async fn bearer(
+        &self,
+        method: Method,
+        path: &str,
+        token: &str,
+        headers: &[(&str, &str)],
+        body: Option<Value>,
+    ) -> TestResult<Reply> {
+        let mut builder = Request::builder()
+            .method(method)
+            .uri(path)
+            .header("authorization", format!("Bearer {token}"));
+        for (name, value) in headers {
+            builder = builder.header(*name, *value);
+        }
+        let request = match body {
+            Some(body) => builder
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string()))?,
+            None => builder.body(Body::empty())?,
+        };
+        read(self.router.clone().oneshot(request).await?).await
+    }
+
     pub(crate) async fn plain_get(&self, path: &str) -> TestResult<Reply> {
         let request = Request::get(path).body(Body::empty())?;
         read(self.router.clone().oneshot(request).await?).await

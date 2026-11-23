@@ -1,6 +1,7 @@
 mod accounts;
 mod admin;
 mod auth;
+mod bearer;
 mod browse;
 mod changes;
 mod connections;

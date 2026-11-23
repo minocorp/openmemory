@@ -9,7 +9,7 @@ use utoipa::OpenApi;
 
 use crate::api::error::ApiError;
 use crate::api::pages::{operation, written};
-use crate::auth::WebSession;
+use crate::auth::ApiSession;
 use crate::pages::changes::{self, self as found};
 use crate::pages::ids::{GroupId, Seq};
 use crate::pages::revert;
@@ -78,7 +78,7 @@ fn version_view(version: found::ChangedVersion) -> ChangedVersion {
     get,
     path = "/api/changes",
     tag = "changes",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("since" = Option<i64>, Query, description = "Defaults to the caller's last seen sequence"),
         ("cursor" = Option<String>, Query, description = "The `next` value of the previous page; overrides `since`"),
@@ -88,7 +88,7 @@ fn version_view(version: found::ChangedVersion) -> ChangedVersion {
 )]
 async fn list_changes(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Query(query): Query<ChangesQuery>,
 ) -> Result<Json<Changes>, ApiError> {
     let since = match (query.cursor.as_deref(), query.since) {
@@ -106,13 +106,13 @@ async fn list_changes(
     post,
     path = "/api/changes/seen",
     tag = "changes",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     request_body = SeenRequest,
     responses((status = 200, body = SeenState), (status = 401, body = Problem, content_type = "application/problem+json"))
 )]
 async fn mark_seen(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Json(request): Json<SeenRequest>,
 ) -> Result<Json<SeenState>, ApiError> {
     let last_seen_seq = changes::mark_seen(state.pool(), &session.actor, Seq(request.seq)).await?;
@@ -125,7 +125,7 @@ async fn mark_seen(
     post,
     path = "/api/changes/{group}/revert",
     tag = "changes",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(("group" = i64, Path)),
     responses(
         (status = 200, body = GroupReverted),
@@ -136,7 +136,7 @@ async fn mark_seen(
 )]
 async fn revert_group(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path(group): Path<GroupId>,
 ) -> Result<Json<GroupReverted>, ApiError> {
     let output = revert::revert_group(state.pool(), &session.actor, group, None).await?;

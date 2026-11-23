@@ -18,7 +18,7 @@ use utoipa::OpenApi;
 
 use crate::api::error::ApiError;
 use crate::api::precondition::{etag, if_match, matches_none_match, requires_absent};
-use crate::auth::WebSession;
+use crate::auth::ApiSession;
 use crate::pages::error::PagesError;
 use crate::pages::ids::{PageId, VersionNumber};
 use crate::pages::write::Revision;
@@ -170,14 +170,14 @@ fn versioned<T: Serialize>(status: StatusCode, version: i32, body: T) -> Respons
     response
 }
 
-async fn current_view(state: &AppState, session: &WebSession, id: PageId) -> Option<Box<PageView>> {
+async fn current_view(state: &AppState, session: &ApiSession, id: PageId) -> Option<Box<PageView>> {
     read::read_by_id(state.pool(), &session.actor, id, None)
         .await
         .ok()
         .map(|page| Box::new(page_view(id, page)))
 }
 
-async fn refine(state: &AppState, session: &WebSession, id: PageId, error: PagesError) -> ApiError {
+async fn refine(state: &AppState, session: &ApiSession, id: PageId, error: PagesError) -> ApiError {
     match error {
         PagesError::Conflict { current_version } => ApiError::PreconditionFailed {
             version: current_version,
@@ -191,7 +191,7 @@ async fn refine(state: &AppState, session: &WebSession, id: PageId, error: Pages
     get,
     path = "/api/pages",
     tag = "pages",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(("path" = String, Query)),
     responses(
         (status = 200, body = PageView, headers(("ETag" = String))),
@@ -202,7 +202,7 @@ async fn refine(state: &AppState, session: &WebSession, id: PageId, error: Pages
 )]
 async fn get_page_by_path(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Query(query): Query<PathQuery>,
 ) -> Result<Response, ApiError> {
     let path = PagePath::parse(&query.path).map_err(|_| ApiError::InvalidInput("path"))?;
@@ -214,7 +214,7 @@ async fn get_page_by_path(
     put,
     path = "/api/pages",
     tag = "pages",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("path" = String, Query),
         ("If-None-Match" = String, Header, description = "Must be `*`: the page is created only if the path is free"),
@@ -233,7 +233,7 @@ async fn get_page_by_path(
 )]
 async fn create_page(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Query(query): Query<PathQuery>,
     headers: HeaderMap,
     Json(request): Json<PageCreate>,
@@ -279,7 +279,7 @@ async fn create_page(
     get,
     path = "/api/pages/{id}",
     tag = "pages",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(("id" = i64, Path), ("version" = Option<i32>, Query)),
     responses(
         (status = 200, body = PageView, headers(("ETag" = String))),
@@ -291,7 +291,7 @@ async fn create_page(
 )]
 async fn get_page(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path(id): Path<PageId>,
     Query(query): Query<VersionQuery>,
     headers: HeaderMap,
@@ -311,7 +311,7 @@ async fn get_page(
     put,
     path = "/api/pages/{id}",
     tag = "pages",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("id" = i64, Path),
         ("If-Match" = String, Header, description = "Strong ETag of the version being replaced"),
@@ -328,7 +328,7 @@ async fn get_page(
 )]
 async fn overwrite_page(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path(id): Path<PageId>,
     headers: HeaderMap,
     Json(request): Json<PageOverwrite>,
@@ -351,7 +351,7 @@ async fn overwrite_page(
     patch,
     path = "/api/pages/{id}",
     tag = "pages",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("id" = i64, Path),
         ("If-Match" = String, Header, description = "Strong ETag of the version being edited"),
@@ -369,7 +369,7 @@ async fn overwrite_page(
 )]
 async fn edit_page(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path(id): Path<PageId>,
     headers: HeaderMap,
     Json(request): Json<PageEdit>,
@@ -412,7 +412,7 @@ async fn edit_page(
 
 async fn revise(
     state: &AppState,
-    session: &WebSession,
+    session: &ApiSession,
     id: PageId,
     headers: &HeaderMap,
     revision: Revision,
@@ -442,7 +442,7 @@ async fn revise(
     delete,
     path = "/api/pages/{id}",
     tag = "pages",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("id" = i64, Path),
         ("If-Match" = String, Header, description = "Strong ETag of the version being deleted"),
@@ -458,7 +458,7 @@ async fn revise(
 )]
 async fn delete_page(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path(id): Path<PageId>,
     headers: HeaderMap,
 ) -> Result<StatusCode, ApiError> {
@@ -475,7 +475,7 @@ async fn delete_page(
     get,
     path = "/api/pages/{id}/versions",
     tag = "pages",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("id" = i64, Path),
         ("limit" = Option<u32>, Query),
@@ -490,7 +490,7 @@ async fn delete_page(
 )]
 async fn list_versions(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path(id): Path<PageId>,
     Query(query): Query<VersionsQuery>,
 ) -> Result<Json<VersionList>, ApiError> {
@@ -511,7 +511,7 @@ async fn list_versions(
     post,
     path = "/api/pages/{id}/versions/{n}/restore",
     tag = "pages",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("id" = i64, Path),
         ("n" = i32, Path),
@@ -528,7 +528,7 @@ async fn list_versions(
 )]
 async fn restore_version(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path((id, n)): Path<(PageId, VersionNumber)>,
     headers: HeaderMap,
 ) -> Result<Response, ApiError> {
@@ -551,7 +551,7 @@ async fn restore_version(
     post,
     path = "/api/pages/{id}/move",
     tag = "pages",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("id" = i64, Path),
         ("If-Match" = String, Header, description = "Strong ETag of the version being moved"),
@@ -569,7 +569,7 @@ async fn restore_version(
 )]
 async fn move_page(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path(id): Path<PageId>,
     headers: HeaderMap,
     Json(request): Json<PageMove>,

@@ -17,12 +17,13 @@ mod tests;
 use axum::routing::get;
 use axum::{Json, Router};
 use memory_api::Problem;
-use utoipa::openapi::security::{ApiKey, ApiKeyValue, SecurityScheme};
+use utoipa::openapi::security::{ApiKey, ApiKeyValue, Http, HttpAuthScheme, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
 use crate::state::AppState;
 
 const SESSION_SCHEME: &str = "session";
+const BEARER_SCHEME: &str = "bearer";
 const SESSION_COOKIE: &str = "__Host-session";
 
 #[derive(OpenApi)]
@@ -46,6 +47,13 @@ impl Modify for DocumentSetup {
             .add_security_scheme(
                 SESSION_SCHEME,
                 SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(SESSION_COOKIE))),
+            );
+        openapi
+            .components
+            .get_or_insert_with(Default::default)
+            .add_security_scheme(
+                BEARER_SCHEME,
+                SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer)),
             );
     }
 }

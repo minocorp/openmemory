@@ -20,11 +20,7 @@ clap = { version = "4.6.9", default-features = false, features = ["derive", "env
 clap_complete = { version = "4.6.12", default-features = false }
 futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
 governor = { version = "0.10.4", default-features = false, features = ["dashmap", "std"] }
-<<<<<<< HEAD
-||||||| f8f1e3b
-=======
 keyring-core = { version = "1.1.0", default-features = false }
->>>>>>> worktree-agent-a780c5383ee74678b
 memory-api = { path = "crates/memory-api" }
 memory-ops = { path = "crates/memory-ops" }
 object_store = { version = "0.14.2", default-features = false, features = ["aws", "fs"] }

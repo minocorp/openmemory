@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use axum::extract::{ConnectInfo, Request, State};
 use axum::http::HeaderValue;
-use axum::http::header::RETRY_AFTER;
+use axum::http::header::{AUTHORIZATION, RETRY_AFTER};
 use axum::middleware::Next;
 use axum::response::Response;
 use governor::clock::{Clock, DefaultClock};
@@ -31,6 +31,7 @@ enum Policy {
     Registration,
     Authorize,
     UploadLink,
+    Bearer,
 }
 
 #[derive(Clone)]
@@ -40,18 +41,20 @@ pub(crate) struct RateLimits {
     registration: Arc<DefaultKeyedRateLimiter<IpAddr>>,
     authorize: Arc<DefaultKeyedRateLimiter<IpAddr>>,
     upload_link: Arc<DefaultKeyedRateLimiter<IpAddr>>,
+    bearer: Arc<DefaultKeyedRateLimiter<IpAddr>>,
     proxies: Arc<[TrustedProxy]>,
     warned_unconfigured_proxy: Arc<AtomicBool>,
 }
 
 impl Policy {
-    fn of(path: &str) -> Option<Self> {
+    fn of(path: &str, has_authorization: bool) -> Option<Self> {
         match path {
             "/oauth/token" => Some(Self::Token),
             "/oauth/register" | "/oauth/device" => Some(Self::Registration),
             "/oauth/authorize" | "/oauth/revoke" => Some(Self::Authorize),
             _ if path.starts_with("/api/upload-links/") => Some(Self::UploadLink),
             _ if path.starts_with("/api/auth/") => Some(Self::Auth),
+            _ if has_authorization && path.starts_with("/api/") => Some(Self::Bearer),
             _ => None,
         }
     }
@@ -70,6 +73,7 @@ impl RateLimits {
             registration: limiter(10, Duration::from_secs(6)),
             authorize: limiter(30, Duration::from_secs(2)),
             upload_link: limiter(20, Duration::from_secs(3)),
+            bearer: limiter(120, Duration::from_millis(500)),
             warned_unconfigured_proxy: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -81,6 +85,7 @@ impl RateLimits {
             &self.registration,
             &self.authorize,
             &self.upload_link,
+            &self.bearer,
         ] {
             limiter.retain_recent();
             limiter.shrink_to_fit();
@@ -94,6 +99,7 @@ impl RateLimits {
             Policy::Registration => &self.registration,
             Policy::Authorize => &self.authorize,
             Policy::UploadLink => &self.upload_link,
+            Policy::Bearer => &self.bearer,
         }
     }
 }
@@ -124,7 +130,8 @@ pub(crate) async fn enforce(
     request: Request,
     next: Next,
 ) -> Response {
-    let Some(policy) = Policy::of(request.uri().path()) else {
+    let has_authorization = request.headers().contains_key(AUTHORIZATION);
+    let Some(policy) = Policy::of(request.uri().path(), has_authorization) else {
         return next.run(request).await;
     };
     match limits

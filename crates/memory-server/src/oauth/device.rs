@@ -64,14 +64,12 @@ pub(super) async fn start(
         .client_id
         .as_deref()
         .ok_or(OAuthErrorCode::InvalidRequest)?;
-    if request
+    let client = clients::resolve(&state, client_id).await?;
+    let audience = request
         .resource
         .as_deref()
-        .is_some_and(|resource| resource != state.public_url().resource())
-    {
-        return Err(OAuthErrorCode::InvalidTarget.into());
-    }
-    let client = clients::resolve(&state, client_id).await?;
+        .and_then(|resource| state.public_url().audience_of(resource))
+        .ok_or(OAuthErrorCode::InvalidTarget)?;
     let device_code = Secret::generate();
     let user_code = UserCode::generate();
     let mut conn = state.pool().acquire().await?;
@@ -80,6 +78,7 @@ pub(super) async fn start(
         &device_code.hash(),
         user_code.as_str(),
         client.id,
+        audience,
         DEVICE_SECONDS,
     )
     .await?;

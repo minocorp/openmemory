@@ -19,7 +19,7 @@ pub(crate) async fn expire_pending(pool: &PgPool) -> Result<u64, sqlx::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::access::{ConnectionId, Folders, Name, UserId};
+    use crate::access::{Audience, ConnectionId, Folders, Name, UserId};
     use crate::auth::token::Secret;
     use crate::oauth::ids::OauthClientId;
     use crate::oauth::queries::clients;
@@ -33,6 +33,7 @@ mod tests {
             &Name::parse(name).unwrap(),
             &Folders::All,
             true,
+            Audience::Mcp,
         )
         .await
         .unwrap();
@@ -99,12 +100,15 @@ mod tests {
         for (secret, lifetime) in [(&live, 600.0), (&stale, 600.0)] {
             consents::insert(
                 &mut conn,
-                &secret.hash(),
-                client,
-                "https://a.example/cb",
-                &"c".repeat(43),
-                None,
-                lifetime,
+                &consents::NewConsent {
+                    token: &secret.hash(),
+                    oauth_client_id: client,
+                    redirect_uri: "https://a.example/cb",
+                    code_challenge: &"c".repeat(43),
+                    client_state: None,
+                    audience: Audience::Mcp,
+                    lifetime_seconds: lifetime,
+                },
             )
             .await
             .unwrap();

@@ -15,6 +15,7 @@ use crate::oauth::redirect;
 use crate::state::AppState;
 
 const DYNAMIC_PREFIX: &str = "dcr-";
+const OFFICIAL_CLI: &str = "memory-cli";
 const MAX_REDIRECT_URIS: usize = 10;
 const MAX_NAME_CHARS: usize = 128;
 const DEFAULT_NAME: &str = "unnamed client";
@@ -45,6 +46,10 @@ pub(super) struct Registration {
 impl Client {
     pub(crate) fn is_dynamic(&self) -> bool {
         self.public_id.starts_with(DYNAMIC_PREFIX)
+    }
+
+    pub(crate) fn is_official(&self) -> bool {
+        self.public_id == OFFICIAL_CLI
     }
 }
 

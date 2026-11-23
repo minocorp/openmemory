@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        INSERT INTO connections (user_id, name, scopes, can_write)\n        VALUES ($1, $2, $3, $4)\n        RETURNING id AS \"id: ConnectionId\"\n        ",
+  "query": "\n        INSERT INTO connections (user_id, name, scopes, can_write, audience)\n        VALUES ($1, $2, $3, $4, $5)\n        RETURNING id AS \"id: ConnectionId\"\n        ",
   "describe": {
     "columns": [
       {
@@ -20,12 +20,13 @@
         "Int8",
         "Text",
         "TextArray",
-        "Bool"
+        "Bool",
+        "Text"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "82be79fa5f3b5a0b0afb54deee35dd0982ecf144cb3ab7f70865e8bb0c1e01b4"
+  "hash": "109020061887d3940830914a3ec8b360018e50ad1c0ebe29a0de956f2889363d"
 }

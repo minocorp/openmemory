@@ -6,6 +6,7 @@ use std::str::FromStr;
 use clap::Parser;
 use url::{Host, Url};
 
+use crate::access::Audience;
 use crate::backup::BackupConfig;
 use crate::rate_limit::TrustedProxy;
 use crate::storage::StorageConfig;
@@ -111,6 +112,20 @@ impl PublicUrl {
 
     pub(crate) fn resource(&self) -> String {
         self.join("/mcp")
+    }
+
+    pub(crate) fn api_resource(&self) -> String {
+        self.join("/api")
+    }
+
+    pub(crate) fn audience_of(&self, resource: &str) -> Option<Audience> {
+        if resource == self.resource() {
+            Some(Audience::Mcp)
+        } else if resource == self.api_resource() {
+            Some(Audience::Api)
+        } else {
+            None
+        }
     }
 
     pub(crate) fn join(&self, path: &str) -> String {

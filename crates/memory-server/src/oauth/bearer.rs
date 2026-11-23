@@ -4,11 +4,14 @@ use axum::http::request::Parts;
 use axum::http::{HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 
-use crate::access::{Actor, connections};
+use crate::access::{Actor, Audience, connections};
 use crate::auth::token::Secret;
+use crate::oauth::error::OAuthError;
 use crate::oauth::metadata::resource_metadata_url;
 use crate::oauth::queries::tokens;
 use crate::state::AppState;
+
+const PERSONAL_PREFIX: &str = "mpat_";
 
 #[derive(Debug, Clone)]
 pub(crate) struct McpActor(pub(crate) Actor);
@@ -20,6 +23,54 @@ pub(crate) enum BearerRejection {
     Internal,
 }
 
+#[derive(Debug)]
+pub(crate) enum Credential {
+    Absent,
+    Malformed,
+    Token(Secret),
+}
+
+pub(crate) fn credential(parts: &Parts) -> Credential {
+    let Some(header) = parts.headers.get(AUTHORIZATION) else {
+        return Credential::Absent;
+    };
+    header
+        .to_str()
+        .ok()
+        .and_then(|value| value.split_once(' '))
+        .filter(|(scheme, _)| scheme.eq_ignore_ascii_case("bearer"))
+        .map_or(Credential::Malformed, |(_, token)| {
+            Credential::Token(Secret::from_text(token.trim()))
+        })
+}
+
+pub(crate) fn new_personal_token() -> Secret {
+    Secret::from_text(&format!("{PERSONAL_PREFIX}{}", Secret::generate().expose()))
+}
+
+pub(crate) async fn resolve(
+    state: &AppState,
+    token: &Secret,
+    audience: Audience,
+) -> Result<Option<Actor>, OAuthError> {
+    let mut conn = state.pool().acquire().await?;
+    let hash = token.hash();
+    let personal = audience == Audience::Api && token.expose().starts_with(PERSONAL_PREFIX);
+    let connection_id = if personal {
+        connections::find_by_personal_token(&mut conn, &hash).await?
+    } else {
+        tokens::connection_of_access(&mut conn, &hash).await?
+    };
+    let Some(connection_id) = connection_id else {
+        return Ok(None);
+    };
+    let actor = connections::load_actor_in(&mut conn, connection_id, Some(audience)).await?;
+    if actor.is_some() {
+        connections::touch(&mut conn, connection_id).await?;
+    }
+    Ok(actor)
+}
+
 impl FromRequestParts<AppState> for McpActor {
     type Rejection = BearerRejection;
 
@@ -27,36 +78,21 @@ impl FromRequestParts<AppState> for McpActor {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let metadata = resource_metadata_url(state);
-        let Some(header) = parts.headers.get(AUTHORIZATION) else {
-            return Err(BearerRejection::Missing(metadata));
+        let metadata = resource_metadata_url(state, Audience::Mcp);
+        let token = match credential(parts) {
+            Credential::Absent => return Err(BearerRejection::Missing(metadata)),
+            Credential::Malformed => return Err(BearerRejection::Invalid(metadata)),
+            Credential::Token(token) => token,
         };
-        let token = header
-            .to_str()
-            .ok()
-            .and_then(|value| value.split_once(' '))
-            .filter(|(scheme, _)| scheme.eq_ignore_ascii_case("bearer"))
-            .map(|(_, token)| Secret::from_text(token.trim()))
-            .ok_or_else(|| BearerRejection::Invalid(metadata.clone()))?;
-        let mut conn = state.pool().acquire().await.map_err(internal)?;
-        let connection_id = tokens::connection_of_access(&mut conn, &token.hash())
-            .await
-            .map_err(internal)?
-            .ok_or_else(|| BearerRejection::Invalid(metadata.clone()))?;
-        let actor = connections::load_actor(&mut conn, connection_id)
-            .await
-            .map_err(internal)?
-            .ok_or(BearerRejection::Invalid(metadata))?;
-        connections::touch(&mut conn, connection_id)
-            .await
-            .map_err(internal)?;
-        Ok(Self(actor))
+        match resolve(state, &token, Audience::Mcp).await {
+            Ok(Some(actor)) => Ok(Self(actor)),
+            Ok(None) => Err(BearerRejection::Invalid(metadata)),
+            Err(error) => {
+                tracing::error!(%error, "bearer lookup failed");
+                Err(BearerRejection::Internal)
+            }
+        }
     }
-}
-
-fn internal(error: impl std::error::Error) -> BearerRejection {
-    tracing::error!(%error, "bearer lookup failed");
-    BearerRejection::Internal
 }
 
 impl IntoResponse for BearerRejection {

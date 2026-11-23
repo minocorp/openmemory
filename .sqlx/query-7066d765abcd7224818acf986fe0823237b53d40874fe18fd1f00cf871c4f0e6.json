@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n          oauth_client_id AS \"oauth_client_id: OauthClientId\",\n          redirect_uri,\n          code_challenge,\n          client_state\n        FROM oauth_consents\n        WHERE token_hash = $1\n          AND expires_at > now()\n        ",
+  "query": "\n        DELETE FROM oauth_consents\n        WHERE token_hash = $1\n          AND expires_at > now()\n        RETURNING\n          oauth_client_id AS \"oauth_client_id: OauthClientId\",\n          redirect_uri,\n          code_challenge,\n          client_state,\n          audience AS \"audience: Audience\"\n        ",
   "describe": {
     "columns": [
       {
@@ -46,6 +46,17 @@
             "name": "client_state"
           }
         }
+      },
+      {
+        "ordinal": 4,
+        "name": "audience: Audience",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "oauth_consents",
+            "name": "audience"
+          }
+        }
       }
     ],
     "parameters": {
@@ -57,8 +68,9 @@
       false,
       false,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "451538847a1eb877c4f5af806d73b1bac534c7e65b57e8052ed6aca73e4a60c6"
+  "hash": "7066d765abcd7224818acf986fe0823237b53d40874fe18fd1f00cf871c4f0e6"
 }

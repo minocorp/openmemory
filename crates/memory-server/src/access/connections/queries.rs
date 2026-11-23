@@ -1,7 +1,8 @@
 use sqlx::PgConnection;
 use time::OffsetDateTime;
 
-use crate::access::{ConnectionId, UserId};
+use crate::access::{Audience, ConnectionId, UserId};
+use crate::auth::token::SecretHash;
 
 #[derive(Debug)]
 pub(crate) struct ConnectionRow {
@@ -14,6 +15,9 @@ pub(crate) struct ConnectionRow {
     pub(crate) can_write: bool,
     pub(crate) created_at: OffsetDateTime,
     pub(crate) last_used_at: Option<OffsetDateTime>,
+    pub(crate) audience: Audience,
+    pub(crate) expires_at: Option<OffsetDateTime>,
+    pub(crate) is_token: bool,
 }
 
 pub(crate) async fn insert(
@@ -22,19 +26,65 @@ pub(crate) async fn insert(
     name: &str,
     scopes: &[String],
     can_write: bool,
+    audience: Audience,
 ) -> Result<ConnectionId, sqlx::Error> {
     sqlx::query_scalar!(
         r#"
-        INSERT INTO connections (user_id, name, scopes, can_write)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO connections (user_id, name, scopes, can_write, audience)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING id AS "id: ConnectionId"
         "#,
         user_id as UserId,
         name,
         scopes,
         can_write,
+        audience as Audience,
     )
     .fetch_one(conn)
+    .await
+}
+
+pub(crate) async fn insert_personal(
+    conn: &mut PgConnection,
+    user_id: UserId,
+    name: &str,
+    scopes: &[String],
+    can_write: bool,
+    token: &SecretHash,
+    lifetime_seconds: f64,
+) -> Result<(ConnectionId, OffsetDateTime), sqlx::Error> {
+    let row = sqlx::query!(
+        r#"
+        INSERT INTO connections
+          (user_id, name, scopes, can_write, audience, personal_token_hash, expires_at)
+        VALUES ($1, $2, $3, $4, 'api', $5, now() + make_interval(secs => $6))
+        RETURNING id AS "id: ConnectionId", expires_at AS "expires_at!"
+        "#,
+        user_id as UserId,
+        name,
+        scopes,
+        can_write,
+        token.as_bytes(),
+        lifetime_seconds,
+    )
+    .fetch_one(conn)
+    .await?;
+    Ok((row.id, row.expires_at))
+}
+
+pub(crate) async fn find_by_personal_token(
+    conn: &mut PgConnection,
+    token: &SecretHash,
+) -> Result<Option<ConnectionId>, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"
+        SELECT id AS "id: ConnectionId"
+        FROM connections
+        WHERE personal_token_hash = $1
+        "#,
+        token.as_bytes(),
+    )
+    .fetch_optional(conn)
     .await
 }
 
@@ -54,10 +104,14 @@ pub(crate) async fn list_live(
           c.scopes,
           c.can_write,
           c.created_at,
-          c.last_used_at
+          c.last_used_at,
+          c.audience AS "audience: Audience",
+          c.expires_at,
+          c.personal_token_hash IS NOT NULL AS "is_token!"
         FROM connections AS c
         JOIN users AS u ON u.id = c.user_id
         WHERE c.revoked_at IS NULL
+          AND (c.expires_at IS NULL OR c.expires_at > now())
           AND ($1::bigint IS NULL OR c.user_id = $1)
         ORDER BY u.username, c.name, c.id
         "#,
@@ -83,11 +137,15 @@ pub(crate) async fn find_live(
           c.scopes,
           c.can_write,
           c.created_at,
-          c.last_used_at
+          c.last_used_at,
+          c.audience AS "audience: Audience",
+          c.expires_at,
+          c.personal_token_hash IS NOT NULL AS "is_token!"
         FROM connections AS c
         JOIN users AS u ON u.id = c.user_id
         WHERE c.id = $1
           AND c.revoked_at IS NULL
+          AND (c.expires_at IS NULL OR c.expires_at > now())
         "#,
         id as ConnectionId,
     )
@@ -154,6 +212,7 @@ pub(crate) async fn delete_unexchanged(
         r#"
         DELETE FROM connections AS c
         WHERE c.revoked_at IS NULL
+          AND c.personal_token_hash IS NULL
           AND c.created_at < now() - make_interval(secs => $1)
           AND NOT EXISTS (
             SELECT 1
