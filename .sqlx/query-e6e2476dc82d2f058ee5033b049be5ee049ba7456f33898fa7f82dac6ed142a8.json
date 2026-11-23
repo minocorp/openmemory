@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id AS \"id!\"\nFROM pages AS p\nWHERE p.deleted_at IS NULL\n  AND p.id <> $1\n  AND (\n    p.id IN (SELECT l.from_page_id FROM page_links AS l WHERE l.to_page_id = $1)\n    OR p.content LIKE $2\n  )\nORDER BY p.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e6e2476dc82d2f058ee5033b049be5ee049ba7456f33898fa7f82dac6ed142a8"
+}

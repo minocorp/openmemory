@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE change_groups\nSET last_at = GREATEST(last_at, now()),\n  task = COALESCE(task, $2)\nWHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "33579f32a34595b3ee8faf3b79e551ecb1e4e340716741deee96a0f61c240e21"
+}

@@ -1,0 +1,72 @@
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.100"
+license = "Apache-2.0"
+repository = "https://github.com/minodevss/memory"
+publish = false
+
+[workspace.dependencies]
+anyhow = "1.0.105"
+async-trait = "0.1.92"
+axum = { version = "0.8.9", default-features = false, features = ["form", "http1", "json", "query", "tokio"] }
+base64 = { version = "0.22.1", default-features = false, features = ["std"] }
+bytes = { version = "1.12.2", default-features = false }
+clap = { version = "4.6.9", default-features = false, features = ["derive", "env", "help", "std", "usage"] }
+futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
+governor = { version = "0.10.4", default-features = false, features = ["dashmap", "std"] }
+memory-ops = { path = "crates/memory-ops" }
+object_store = { version = "0.14.2", default-features = false, features = ["aws", "fs"] }
+rand = { version = "0.10.4", default-features = false, features = ["std", "std_rng"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls"] }
+rmcp = { version = "3.11.0", default-features = false }
+rust-embed = { version = "8.14.0", default-features = false, features = ["mime-guess"] }
+schemars = { version = "1.2.3", default-features = false, features = ["derive", "std"] }
+serde = { version = "1.0.229", default-features = false, features = ["derive", "std"] }
+serde-saphyr = { version = "2.2.0", default-features = false, features = ["deserialize"] }
+serde_json = { version = "1.0.154", default-features = false, features = ["std"] }
+sha2 = { version = "0.11.1", default-features = false }
+similar = { version = "3.2.1", default-features = false }
+sqlx = { version = "0.9.1", default-features = false, features = ["derive", "json", "macros", "migrate", "postgres", "runtime-tokio", "time", "tls-rustls"] }
+subtle = { version = "2.6.1", default-features = false }
+tempfile = { version = "3.27.0", default-features = false }
+thiserror = { version = "2.0.21", default-features = false }
+time = { version = "0.3.55", default-features = false, features = ["serde-well-known", "std"] }
+tokio = { version = "1.54.1", default-features = false, features = ["fs", "io-util", "macros", "net", "process", "rt-multi-thread", "signal", "sync", "time"] }
+tokio-util = { version = "0.7.20", default-features = false, features = ["rt"] }
+tower = { version = "0.5.3", default-features = false, features = ["util"] }
+tower-http = { version = "0.7.1", default-features = false, features = ["timeout", "trace"] }
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["ansi", "env-filter", "fmt", "std"] }
+unicode-normalization = { version = "0.1.26", default-features = false, features = ["std"] }
+url = { version = "2.5.9", default-features = false, features = ["std"] }
+utoipa = { version = "6.0.0", default-features = false, features = ["axum_extras", "macros", "time"] }
+webauthn-authenticator-rs = { version = "0.6.2", default-features = false, features = ["softpasskey"] }
+webauthn-rs = { version = "0.6.2", default-features = false, features = ["conditional-ui", "danger-allow-state-serialisation"] }
+zip = { version = "9.8.2", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+return_self_not_must_use = "allow"
+needless_pass_by_value = "allow"
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+dbg_macro = "warn"
+string_slice = "warn"
+clone_on_ref_ptr = "warn"
+mod_module_files = "warn"
+allow_attributes = "warn"

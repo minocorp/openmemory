@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n  SELECT 1\n  FROM purges\n  WHERE kind = $1\n    AND subject_id = $2\n) AS \"purged!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "purged!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "54172162919ac05a51c062d69f5eb2d6e9b1dd468769cd71290407c611a6adf9"
+}

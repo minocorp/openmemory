@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users\nSET last_seen_seq = GREATEST(\n  last_seen_seq,\n  LEAST($2, (SELECT COALESCE(MAX(seq), 0) FROM page_versions))\n)\nWHERE id = $1\nRETURNING last_seen_seq AS \"last_seen_seq: Seq\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "last_seen_seq: Seq",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "last_seen_seq"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "acf746548c82d384e6bd9e16c42c7d6a99c307b15cded37d18ad4ca66372cc22"
+}

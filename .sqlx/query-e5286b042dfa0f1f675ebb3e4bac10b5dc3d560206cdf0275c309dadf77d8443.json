@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE connections\n        SET name = COALESCE($2, name),\n            scopes = COALESCE($3, scopes),\n            can_write = COALESCE($4, can_write)\n        WHERE id = $1\n          AND revoked_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "TextArray",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e5286b042dfa0f1f675ebb3e4bac10b5dc3d560206cdf0275c309dadf77d8443"
+}

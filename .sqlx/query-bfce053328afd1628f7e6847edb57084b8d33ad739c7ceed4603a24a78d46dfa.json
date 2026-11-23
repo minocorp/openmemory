@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT EXISTS (\n          SELECT 1\n          FROM connections\n          WHERE user_id = $1\n            AND name = $2\n            AND revoked_at IS NULL\n        ) AS \"taken!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "taken!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "bfce053328afd1628f7e6847edb57084b8d33ad739c7ceed4603a24a78d46dfa"
+}

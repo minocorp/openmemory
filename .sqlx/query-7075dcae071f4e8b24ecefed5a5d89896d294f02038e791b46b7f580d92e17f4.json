@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT connection_id AS \"connection_id: ConnectionId\"\n        FROM oauth_tokens\n        WHERE access_token_hash = $1\n          AND access_expires_at > now()\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "connection_id: ConnectionId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "oauth_tokens",
+            "name": "connection_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7075dcae071f4e8b24ecefed5a5d89896d294f02038e791b46b7f580d92e17f4"
+}

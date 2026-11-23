@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  id AS \"id: GroupId\",\n  task\nFROM change_groups\nWHERE user_id = $1\n  AND connection_id IS NOT DISTINCT FROM $2\n  AND last_at > now() - make_interval(mins => $3)\nORDER BY last_at DESC, id DESC\nLIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: GroupId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "change_groups",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "task",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "change_groups",
+            "name": "task"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "da5d11d7c631716868a7a32d2d301c28e6fc73bb6544496104bdd5a2d92ad4a6"
+}

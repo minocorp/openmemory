@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pages\nSET current_version = $3,\n  path = $4,\n  content = $5,\n  deleted_at = CASE WHEN $6 THEN now() ELSE NULL END\nWHERE id = $1\n  AND current_version = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4",
+        "Int4",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cce7700a1c7b3fb788372772dd3485cac5b8d6f59c4c54fb8e0a928df72abc6d"
+}

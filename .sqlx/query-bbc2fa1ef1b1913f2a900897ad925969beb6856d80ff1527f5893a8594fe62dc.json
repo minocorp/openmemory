@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  split_part(rest, '/', 1) AS \"name!\",\n  bool_or(position('/' IN rest) = 0) AS \"is_file!\"\nFROM (\n  SELECT substr(f.path, length($1::text) + 1) AS rest\n  FROM files AS f\n  WHERE f.deleted_at IS NULL\n    AND starts_with(f.path, $1)\n    AND ($2 OR f.path = ANY($3) OR f.path LIKE ANY($4))\n) AS children\nGROUP BY 1\nORDER BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "is_file!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bool",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "bbc2fa1ef1b1913f2a900897ad925969beb6856d80ff1527f5893a8594fe62dc"
+}

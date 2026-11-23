@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE oauth_codes\n        SET used_at = now()\n        WHERE code_hash = $1\n          AND used_at IS NULL\n        RETURNING\n          oauth_client_id AS \"oauth_client_id: OauthClientId\",\n          connection_id AS \"connection_id: ConnectionId\",\n          redirect_uri,\n          code_challenge,\n          expires_at <= now() AS \"is_expired!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "oauth_client_id: OauthClientId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "oauth_codes",
+            "name": "oauth_client_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "connection_id: ConnectionId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "oauth_codes",
+            "name": "connection_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "redirect_uri",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "oauth_codes",
+            "name": "redirect_uri"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "code_challenge",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "oauth_codes",
+            "name": "code_challenge"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "is_expired!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "3bd6839c5a0158b16babce0dedf46cb0bc62b3fc84a0901b16a07260fcc082ec"
+}

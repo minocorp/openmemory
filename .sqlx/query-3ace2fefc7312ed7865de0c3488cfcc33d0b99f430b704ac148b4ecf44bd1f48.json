@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT connection_id AS \"connection_id: ConnectionId\"\n        FROM oauth_codes\n        WHERE code_hash = $1\n          AND used_at IS NOT NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "connection_id: ConnectionId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "oauth_codes",
+            "name": "connection_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3ace2fefc7312ed7865de0c3488cfcc33d0b99f430b704ac148b4ecf44bd1f48"
+}

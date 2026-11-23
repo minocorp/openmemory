@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  page_id AS \"page_id: PageId\",\n  MIN(n) AS \"first!: VersionNumber\",\n  MAX(n) AS \"last!: VersionNumber\"\nFROM page_versions\nWHERE group_id = $1\nGROUP BY page_id\nORDER BY page_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "page_id: PageId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "page_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "first!: VersionNumber",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "last!: VersionNumber",
+        "type_info": "Int4",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "f1829ec3d64cf9c6a7731f9dd470c044b5b5c42eb3fe96c50bcd1be043f4f8f1"
+}

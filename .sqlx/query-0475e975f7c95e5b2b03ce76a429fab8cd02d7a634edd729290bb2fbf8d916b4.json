@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  n AS \"n: VersionNumber\",\n  content,\n  path,\n  op,\n  author_name,\n  created_at\nFROM page_versions\nWHERE page_id = $1\n  AND n = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n: VersionNumber",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "n"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "content",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "content"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "op",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "op"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "author_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "author_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0475e975f7c95e5b2b03ce76a429fab8cd02d7a634edd729290bb2fbf8d916b4"
+}

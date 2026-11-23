@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  p.id AS \"id: PageId\",\n  p.path,\n  p.current_version AS \"current_version: VersionNumber\",\n  v.created_at AS updated_at\nFROM pages AS p\nJOIN page_versions AS v ON v.page_id = p.id AND v.n = p.current_version\nWHERE p.deleted_at IS NULL\n  AND ($1 OR p.path = $2 OR p.path = ANY($3) OR p.path LIKE ANY($4))\nORDER BY p.path",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: PageId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "current_version: VersionNumber",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "current_version"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Text",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "671dbde88f2ba4ec76cdb90f13bd1d237bcf7ab1d503fb29bee6e635100f46fc"
+}

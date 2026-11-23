@@ -1,0 +1,1 @@
+ALTER TABLE page_versions VALIDATE CONSTRAINT page_versions_op_check;

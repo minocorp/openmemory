@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT EXISTS (\n          SELECT 1\n          FROM recovery_codes\n          WHERE user_id = $1\n            AND code_hash = $2\n            AND used_at IS NULL\n        ) AS \"unused!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "unused!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ba203e5883abb5f473789e8350a8a7933c5a65f1212fba9cff8d3457a5320330"
+}

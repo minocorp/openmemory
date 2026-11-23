@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT f.key AS \"key!\"\nFROM page_fields AS f\nJOIN pages AS p ON p.id = f.page_id\nWHERE p.deleted_at IS NULL\n  AND ($1 OR p.path = ANY($2) OR p.path LIKE ANY($3))\nORDER BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_fields",
+            "name": "key"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "396f494884c720d02a6ac847742ded787c0e3380c29378feaa23b9b21a4402ec"
+}

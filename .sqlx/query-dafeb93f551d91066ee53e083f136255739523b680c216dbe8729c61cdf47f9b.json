@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO file_pages (file_id, page, text)\nSELECT $1, page, text\nFROM UNNEST($2::integer[], $3::text[]) AS t (page, text)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4Array",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dafeb93f551d91066ee53e083f136255739523b680c216dbe8729c61cdf47f9b"
+}

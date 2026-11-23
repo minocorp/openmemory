@@ -1,0 +1,7 @@
+.git
+.claude
+target
+run
+docs
+web/node_modules
+web/dist

@@ -1,0 +1,182 @@
+{
+  "plugins": ["typescript", "react", "jsx-a11y", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "options": {
+    "typeAware": true,
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-non-null-assertion": "error",
+    "import/no-cycle": "error",
+    "import/no-default-export": "error",
+    "eqeqeq": "error",
+    "no-console": "error",
+    "no-warning-comments": "error",
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": [
+      "error",
+      {
+        "allow": ["**/*.css"]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["*.config.ts", "src/app/routes/**"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["src/app/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/pages/*/**", "@/widgets/*/**", "@/features/*/**", "@/entities/*/**"],
+                "message": "FSD: import slices through their index"
+              },
+              {
+                "group": ["@/shared/*/*/**"],
+                "message": "FSD: import shared units through their index"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/pages/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/app/**", "@/pages/**"],
+                "message": "FSD: pages imports only layers below"
+              },
+              {
+                "group": ["@/widgets/*/**", "@/features/*/**", "@/entities/*/**"],
+                "message": "FSD: import slices through their index"
+              },
+              {
+                "group": ["@/shared/*/*/**"],
+                "message": "FSD: import shared units through their index"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/widgets/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/app/**", "@/pages/**", "@/widgets/**"],
+                "message": "FSD: widgets imports only layers below"
+              },
+              {
+                "group": ["@/features/*/**", "@/entities/*/**"],
+                "message": "FSD: import slices through their index"
+              },
+              {
+                "group": ["@/shared/*/*/**"],
+                "message": "FSD: import shared units through their index"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/app/**", "@/pages/**", "@/widgets/**", "@/features/**"],
+                "message": "FSD: features imports only layers below"
+              },
+              {
+                "group": ["@/entities/*/**"],
+                "message": "FSD: import slices through their index"
+              },
+              {
+                "group": ["@/shared/*/*/**"],
+                "message": "FSD: import shared units through their index"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/entities/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@/app/**",
+                  "@/pages/**",
+                  "@/widgets/**",
+                  "@/features/**",
+                  "@/entities/**"
+                ],
+                "message": "FSD: entities imports only layers below"
+              },
+              {
+                "group": ["@/shared/*/*/**"],
+                "message": "FSD: import shared units through their index"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/shared/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@/app/**",
+                  "@/pages/**",
+                  "@/widgets/**",
+                  "@/features/**",
+                  "@/entities/**"
+                ],
+                "message": "FSD: shared imports only layers below"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "ignorePatterns": ["dist", "src/shared/api/schema.d.ts", "src/app/routeTree.gen.ts"]
+}

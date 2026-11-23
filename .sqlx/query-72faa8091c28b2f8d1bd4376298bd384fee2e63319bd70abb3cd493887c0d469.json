@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  split_part(rest, '/', 1) AS \"name!\",\n  bool_or(position('/' IN rest) = 0) AS \"is_page!\",\n  bool_or(position('/' IN rest) > 0) AS \"is_folder!\"\nFROM (\n  SELECT substr(p.path, length($1::text) + 1) AS rest\n  FROM pages AS p\n  WHERE p.deleted_at IS NULL\n    AND starts_with(p.path, $1)\n    AND ($2 OR p.path = ANY($3) OR p.path LIKE ANY($4))\n) AS children\nGROUP BY 1\nORDER BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "is_page!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_folder!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bool",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "72faa8091c28b2f8d1bd4376298bd384fee2e63319bd70abb3cd493887c0d469"
+}

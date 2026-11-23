@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  p.page,\n  p.text\nFROM files AS f\nJOIN file_pages AS p ON p.file_id = f.id\nWHERE f.path = $1\n  AND f.deleted_at IS NULL\nORDER BY p.page",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "page",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "file_pages",
+            "name": "page"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "text",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "file_pages",
+            "name": "text"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "a50f21ab469773659e9514ba55368b8abfd5a12989d3720cbf809ef04201026f"
+}

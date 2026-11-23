@@ -1,0 +1,165 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  g.id AS \"group_id: GroupId\",\n  g.task,\n  v.page_id AS \"page_id: PageId\",\n  v.n AS \"n: VersionNumber\",\n  v.seq AS \"seq: Seq\",\n  v.path,\n  v.op,\n  v.author_name,\n  u.display_name AS author_display_name,\n  v.created_at,\n  v.content,\n  previous.content AS \"previous_content?\"\nFROM page_versions AS v\nJOIN change_groups AS g ON g.id = v.group_id\nJOIN users AS u ON u.id = v.user_id\nLEFT JOIN page_versions AS previous ON previous.page_id = v.page_id AND previous.n = v.n - 1\nWHERE v.seq > $1\n  AND ($2 OR v.path = ANY($3) OR v.path LIKE ANY($4))\n  AND (v.user_id <> $6 OR v.connection_id IS NOT NULL)\nORDER BY v.seq\nLIMIT $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "group_id: GroupId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "change_groups",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "task",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "change_groups",
+            "name": "task"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "page_id: PageId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "page_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "n: VersionNumber",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "n"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "seq: Seq",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "seq"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "op",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "op"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "author_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "author_name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "author_display_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "display_name"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "content",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "content"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "previous_content?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "content"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bool",
+        "TextArray",
+        "TextArray",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9c7db8daaaed3dc17913fbe4387d1a731e055420ffaea5deb61ca094039454e2"
+}

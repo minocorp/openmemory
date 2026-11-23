@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  f.id AS \"id: FileId\",\n  f.path,\n  u.username AS author,\n  f.created_at,\n  fp.page,\n  fp.text\nFROM file_pages AS fp\nJOIN files AS f ON f.id = fp.file_id\nJOIN users AS u ON u.id = f.user_id\nWHERE f.deleted_at IS NULL\n  AND fp.text LIKE $1\n  AND ($2 OR f.path = ANY($3) OR f.path LIKE ANY($4))\n  AND ($5::text IS NULL OR f.path = $5 OR f.path LIKE $6)\nORDER BY f.created_at DESC, f.id DESC, fp.page\nLIMIT $7",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: FileId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "author",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "username"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "page",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "file_pages",
+            "name": "page"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "text",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "file_pages",
+            "name": "text"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bool",
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b7fab122d496dfe803353a84a267a2a703a1b88d2a92d52104fd5d88ea53d289"
+}

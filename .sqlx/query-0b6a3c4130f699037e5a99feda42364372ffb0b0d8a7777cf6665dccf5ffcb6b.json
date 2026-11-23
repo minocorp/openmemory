@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO change_groups (user_id, connection_id, task)\nVALUES ($1, $2, $3)\nRETURNING id AS \"id: GroupId\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: GroupId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "change_groups",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0b6a3c4130f699037e5a99feda42364372ffb0b0d8a7777cf6665dccf5ffcb6b"
+}

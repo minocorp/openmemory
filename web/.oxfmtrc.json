@@ -1,0 +1,13 @@
+{
+  "printWidth": 100,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "sortImports": { "internalPattern": ["@/"], "newlinesBetween": true },
+  "sortTailwindcss": { "stylesheet": "./src/app/styles/index.css", "functions": ["cn", "cva"] },
+  "ignorePatterns": [
+    "dist",
+    "openapi.json",
+    "src/shared/api/schema.d.ts",
+    "src/app/routeTree.gen.ts"
+  ]
+}

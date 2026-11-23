@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE passkeys\n        SET credential = $2, last_used_at = now()\n        WHERE credential_id = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1aae3e92bc49a97489a57c73e41859b439d0e273ede40daec74b9f8bd400c6b7"
+}

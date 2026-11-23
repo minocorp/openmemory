@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE device_codes\n        SET denied_at = now()\n        WHERE user_code = $1\n          AND connection_id IS NULL\n          AND denied_at IS NULL\n          AND expires_at > now()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9a0ee4f307e8476a3c638953ded649ec195566946500744ecf175b3d2236a0b1"
+}
