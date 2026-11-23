@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO connections\n          (user_id, name, scopes, can_write, audience, personal_token_hash, expires_at)\n        VALUES ($1, $2, $3, $4, 'api', $5, now() + make_interval(secs => $6))\n        RETURNING id AS \"id: ConnectionId\", expires_at AS \"expires_at!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ConnectionId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connections",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "expires_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "connections",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "TextArray",
+        "Bool",
+        "Bytea",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "34018d3f3dbc8cdd989f98c14ac59f87756d44f6047ce922cb98f84dfaea08c5"
+}

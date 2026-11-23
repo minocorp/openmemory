@@ -7,7 +7,7 @@ use url::Url;
 use utoipa::{OpenApi, ToSchema};
 use webauthn_rs::prelude::{PublicKeyCredential, RequestChallengeResponse};
 
-use crate::access::{Folders, Name, connections};
+use crate::access::{Audience, Folders, Name, connections};
 use crate::auth::ceremony::{self, Assertion};
 use crate::auth::token::Secret;
 use crate::auth::{AuthError, WebSession};
@@ -36,11 +36,13 @@ struct ClientSummary {
     client_id: String,
     name: String,
     unverified: bool,
+    official: bool,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
 struct ConsentView {
     kind: &'static str,
+    audience: Audience,
     client: ClientSummary,
     redirect_host: Option<String>,
     localhost_only: bool,
@@ -105,7 +107,7 @@ async fn view(
     Path(reference): Path<String>,
 ) -> Result<Json<ConsentView>, AuthError> {
     let mut conn = state.pool().acquire().await?;
-    let (pending, client) = lookup(&mut conn, &reference).await?;
+    let (pending, client, audience) = lookup(&mut conn, &reference).await?;
     let proposed = connections::proposed_name(&mut conn, session.user_id(), &client.name).await?;
     let (kind, redirect_uri) = match &pending {
         Pending::Authorization(row) => ("authorization", Some(row.redirect_uri.as_str())),
@@ -122,8 +124,10 @@ async fn view(
         .map(|host| name_matches_host(&client.name, host));
     Ok(Json(ConsentView {
         kind,
+        audience,
         client: ClientSummary {
             unverified: client.is_dynamic(),
+            official: client.is_official(),
             client_id: client.public_id,
             name: client.name,
         },
@@ -227,13 +231,20 @@ async fn approve(
     };
     let can_write = request.can_write.unwrap_or(true);
     let mut tx = state.pool().begin().await?;
-    let (pending, client) = lookup(&mut tx, &reference).await?;
+    let (pending, client, audience) = lookup(&mut tx, &reference).await?;
     let name = match request.name {
         Some(name) => name,
         None => connections::proposed_name(&mut tx, session.user_id(), &client.name).await?,
     };
-    let connection_id =
-        connections::create(&mut tx, session.user_id(), &name, &folders, can_write).await?;
+    let connection_id = connections::create(
+        &mut tx,
+        session.user_id(),
+        &name,
+        &folders,
+        can_write,
+        audience,
+    )
+    .await?;
     let decision = match pending {
         Pending::Authorization(row) => {
             consents::take(&mut tx, &consent_hash(&reference))
@@ -289,7 +300,7 @@ async fn deny(
     Path(reference): Path<String>,
 ) -> Result<Json<Decision>, AuthError> {
     let mut tx = state.pool().begin().await?;
-    let (pending, _client) = lookup(&mut tx, &reference).await?;
+    let (pending, _client, _audience) = lookup(&mut tx, &reference).await?;
     let decision = match pending {
         Pending::Authorization(row) => {
             consents::take(&mut tx, &consent_hash(&reference))
@@ -317,15 +328,18 @@ fn consent_hash(reference: &str) -> crate::auth::token::SecretHash {
     Secret::from_text(reference).hash()
 }
 
-async fn lookup(conn: &mut PgConnection, reference: &str) -> Result<(Pending, Client), AuthError> {
+async fn lookup(
+    conn: &mut PgConnection,
+    reference: &str,
+) -> Result<(Pending, Client, Audience), AuthError> {
     if let Some(user_code) = UserCode::parse(reference) {
-        let client_id = devices::find_pending_client(conn, user_code.as_str())
+        let device = devices::find_pending(conn, user_code.as_str())
             .await?
             .ok_or(AuthError::NotFound)?;
-        let client = clients::by_id(conn, client_id)
+        let client = clients::by_id(conn, device.oauth_client_id)
             .await
             .map_err(|_| AuthError::NotFound)?;
-        return Ok((Pending::Device(user_code), client));
+        return Ok((Pending::Device(user_code), client, device.audience));
     }
     let row = consents::find(conn, &consent_hash(reference))
         .await?
@@ -333,7 +347,8 @@ async fn lookup(conn: &mut PgConnection, reference: &str) -> Result<(Pending, Cl
     let client = clients::by_id(conn, row.oauth_client_id)
         .await
         .map_err(|_| AuthError::NotFound)?;
-    Ok((Pending::Authorization(row), client))
+    let audience = row.audience;
+    Ok((Pending::Authorization(row), client, audience))
 }
 
 #[cfg(test)]

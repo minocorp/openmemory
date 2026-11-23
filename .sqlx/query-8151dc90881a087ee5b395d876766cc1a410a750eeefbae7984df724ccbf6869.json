@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM connections AS c\n        WHERE c.revoked_at IS NULL\n          AND c.personal_token_hash IS NULL\n          AND c.created_at < now() - make_interval(secs => $1)\n          AND NOT EXISTS (\n            SELECT 1\n            FROM oauth_tokens AS t\n            WHERE t.connection_id = c.id\n          )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8151dc90881a087ee5b395d876766cc1a410a750eeefbae7984df724ccbf6869"
+}

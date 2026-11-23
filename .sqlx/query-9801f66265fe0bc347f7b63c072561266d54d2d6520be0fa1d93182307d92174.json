@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO device_codes (device_code_hash, user_code, oauth_client_id, audience, expires_at)\n        VALUES ($1, $2, $3, $4, now() + make_interval(secs => $5))\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Text",
+        "Int8",
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9801f66265fe0bc347f7b63c072561266d54d2d6520be0fa1d93182307d92174"
+}

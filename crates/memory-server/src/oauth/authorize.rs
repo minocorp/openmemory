@@ -7,7 +7,7 @@ use crate::auth::token::Secret;
 use crate::oauth::clients;
 use crate::oauth::error::{OAuthError, OAuthErrorCode};
 use crate::oauth::pkce::CodeChallenge;
-use crate::oauth::queries::consents;
+use crate::oauth::queries::consents::{self, NewConsent};
 use crate::oauth::redirect;
 use crate::state::AppState;
 
@@ -57,20 +57,27 @@ pub(super) async fn authorize(
     else {
         return failure(OAuthErrorCode::InvalidRequest);
     };
-    if query.resource.as_deref() != Some(state.public_url().resource().as_str()) {
+    let Some(audience) = query
+        .resource
+        .as_deref()
+        .and_then(|resource| state.public_url().audience_of(resource))
+    else {
         return failure(OAuthErrorCode::InvalidTarget);
-    }
+    };
     let token = Secret::generate();
     let mut conn = state.pool().acquire().await?;
     consents::delete_expired(&mut conn).await?;
     consents::insert(
         &mut conn,
-        &token.hash(),
-        client.id,
-        redirect_uri,
-        challenge.as_str(),
-        client_state,
-        CONSENT_SECONDS,
+        &NewConsent {
+            token: &token.hash(),
+            oauth_client_id: client.id,
+            redirect_uri,
+            code_challenge: challenge.as_str(),
+            client_state,
+            audience,
+            lifetime_seconds: CONSENT_SECONDS,
+        },
     )
     .await?;
     let approve = state

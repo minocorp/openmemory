@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id AS \"id: ConnectionId\"\n        FROM connections\n        WHERE personal_token_hash = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ConnectionId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connections",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "984d88ac118a3b172b89e6822644ab51d0903c6f2c213424dfd0f55241b8b040"
+}

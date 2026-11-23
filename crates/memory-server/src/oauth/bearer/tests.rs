@@ -9,7 +9,7 @@ use sqlx::PgPool;
 use tower::ServiceExt;
 
 use super::McpActor;
-use crate::access::{Folders, Name, UserId, connections};
+use crate::access::{Audience, Folders, Name, UserId, connections};
 use crate::auth::token::Secret;
 use crate::oauth::ids::OauthClientId;
 use crate::oauth::queries::{clients, tokens};
@@ -33,9 +33,10 @@ async fn fixture(pool: PgPool) -> Fixture {
             .unwrap();
     let name = Name::parse("claude-code").unwrap();
     let folders = Folders::Only(vec![memory_ops::PagePath::parse("tax").unwrap()]);
-    let connection_id = connections::create(&mut conn, user_id, &name, &folders, false)
-        .await
-        .unwrap();
+    let connection_id =
+        connections::create(&mut conn, user_id, &name, &folders, false, Audience::Mcp)
+            .await
+            .unwrap();
     let client = clients::upsert(
         &mut conn,
         "dcr-test",

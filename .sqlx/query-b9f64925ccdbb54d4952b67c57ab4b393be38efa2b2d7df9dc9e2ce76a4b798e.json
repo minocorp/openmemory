@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n          c.id AS \"id: ConnectionId\",\n          c.user_id AS \"user_id: UserId\",\n          u.username AS owner,\n          u.display_name AS owner_display_name,\n          c.name,\n          c.scopes,\n          c.can_write,\n          c.created_at,\n          c.last_used_at\n        FROM connections AS c\n        JOIN users AS u ON u.id = c.user_id\n        WHERE c.id = $1\n          AND c.revoked_at IS NULL\n        ",
+  "query": "\n        SELECT\n          c.id AS \"id: ConnectionId\",\n          c.user_id AS \"user_id: UserId\",\n          u.username AS owner,\n          u.display_name AS owner_display_name,\n          c.name,\n          c.scopes,\n          c.can_write,\n          c.created_at,\n          c.last_used_at,\n          c.audience AS \"audience: Audience\",\n          c.expires_at,\n          c.personal_token_hash IS NOT NULL AS \"is_token!\"\n        FROM connections AS c\n        JOIN users AS u ON u.id = c.user_id\n        WHERE c.revoked_at IS NULL\n          AND (c.expires_at IS NULL OR c.expires_at > now())\n          AND ($1::bigint IS NULL OR c.user_id = $1)\n        ORDER BY u.username, c.name, c.id\n        ",
   "describe": {
     "columns": [
       {
@@ -101,6 +101,34 @@
             "name": "last_used_at"
           }
         }
+      },
+      {
+        "ordinal": 9,
+        "name": "audience: Audience",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "connections",
+            "name": "audience"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "connections",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "is_token!",
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -117,8 +145,11 @@
       false,
       false,
       false,
-      true
+      true,
+      false,
+      true,
+      null
     ]
   },
-  "hash": "94da7b1f3811f68653619aa134cbea2f1fdbf300147c4365e13dcb7550459026"
+  "hash": "b9f64925ccdbb54d4952b67c57ab4b393be38efa2b2d7df9dc9e2ce76a4b798e"
 }

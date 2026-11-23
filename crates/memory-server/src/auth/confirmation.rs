@@ -19,6 +19,7 @@ pub(crate) enum Action {
     CreateInvite,
     SetAdmin,
     Export,
+    CreateToken,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

@@ -1,3 +1,4 @@
+mod personal;
 mod queries;
 pub(crate) mod scopes;
 
@@ -10,7 +11,8 @@ use sqlx::PgConnection;
 use time::OffsetDateTime;
 use utoipa::{OpenApi, ToSchema};
 
-use crate::access::{Actor, ConnectionId, Folders, Name, UserId};
+use crate::access::{Actor, Audience, ConnectionId, Folders, Name, UserId};
+use crate::auth::token::SecretHash;
 use crate::auth::{AuthError, WebSession, violated_constraint};
 use crate::error::ErrorBody;
 use crate::state::AppState;
@@ -54,6 +56,17 @@ struct ConnectionView {
     created_at: OffsetDateTime,
     #[serde(with = "time::serde::rfc3339::option")]
     last_used_at: Option<OffsetDateTime>,
+    kind: ConnectionKind,
+    audience: Audience,
+    #[serde(with = "time::serde::rfc3339::option")]
+    expires_at: Option<OffsetDateTime>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+enum ConnectionKind {
+    Oauth,
+    Token,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -65,8 +78,20 @@ struct ConnectionUpdate {
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(list_connections, update_connection, revoke_connection),
-    components(schemas(ConnectionView, ConnectionUpdate))
+    paths(
+        list_connections,
+        update_connection,
+        revoke_connection,
+        personal::create_token
+    ),
+    components(schemas(
+        ConnectionView,
+        ConnectionKind,
+        ConnectionUpdate,
+        Audience,
+        personal::TokenCreate,
+        personal::TokenCreated
+    ))
 )]
 pub(crate) struct Doc;
 
@@ -82,6 +107,13 @@ impl From<ConnectionRow> for ConnectionView {
             can_write: row.can_write,
             created_at: row.created_at,
             last_used_at: row.last_used_at,
+            kind: if row.is_token {
+                ConnectionKind::Token
+            } else {
+                ConnectionKind::Oauth
+            },
+            audience: row.audience,
+            expires_at: row.expires_at,
         }
     }
 }
@@ -89,6 +121,7 @@ impl From<ConnectionRow> for ConnectionView {
 pub(crate) fn router() -> Router<AppState> {
     Router::new()
         .route("/api/connections", get(list_connections))
+        .route("/api/tokens", axum::routing::post(personal::create_token))
         .route(
             "/api/connections/{id}",
             axum::routing::patch(update_connection).delete(revoke_connection),
@@ -101,6 +134,7 @@ pub(crate) async fn create(
     name: &Name,
     folders: &Folders,
     can_write: bool,
+    audience: Audience,
 ) -> Result<ConnectionId, ConnectionError> {
     queries::insert(
         conn,
@@ -108,9 +142,39 @@ pub(crate) async fn create(
         name.as_str(),
         &scopes::encode(folders),
         can_write,
+        audience,
     )
     .await
     .map_err(name_conflict)
+}
+
+pub(crate) async fn create_personal(
+    conn: &mut PgConnection,
+    user_id: UserId,
+    name: &Name,
+    folders: &Folders,
+    can_write: bool,
+    token: &SecretHash,
+    lifetime_seconds: f64,
+) -> Result<(ConnectionId, OffsetDateTime), ConnectionError> {
+    queries::insert_personal(
+        conn,
+        user_id,
+        name.as_str(),
+        &scopes::encode(folders),
+        can_write,
+        token,
+        lifetime_seconds,
+    )
+    .await
+    .map_err(name_conflict)
+}
+
+pub(crate) async fn find_by_personal_token(
+    conn: &mut PgConnection,
+    token: &SecretHash,
+) -> Result<Option<ConnectionId>, sqlx::Error> {
+    queries::find_by_personal_token(conn, token).await
 }
 
 pub(crate) async fn proposed_name(
@@ -160,11 +224,15 @@ pub(crate) async fn revoke_one(
     queries::revoke(conn, id).await
 }
 
-pub(crate) async fn load_actor(
+pub(crate) async fn load_actor_in(
     conn: &mut PgConnection,
     id: ConnectionId,
+    audience: Option<Audience>,
 ) -> Result<Option<Actor>, ConnectionError> {
-    let Some(row) = queries::find_live(conn, id).await? else {
+    let Some(row) = queries::find_live(conn, id)
+        .await?
+        .filter(|row| audience.is_none_or(|wanted| row.audience == wanted))
+    else {
         return Ok(None);
     };
     Ok(Some(Actor {

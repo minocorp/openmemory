@@ -1,5 +1,6 @@
 use sqlx::PgConnection;
 
+use crate::access::Audience;
 use crate::auth::token::SecretHash;
 use crate::oauth::ids::OauthClientId;
 
@@ -9,29 +10,36 @@ pub(crate) struct ConsentRow {
     pub(crate) redirect_uri: String,
     pub(crate) code_challenge: String,
     pub(crate) client_state: Option<String>,
+    pub(crate) audience: Audience,
+}
+
+pub(crate) struct NewConsent<'a> {
+    pub(crate) token: &'a SecretHash,
+    pub(crate) oauth_client_id: OauthClientId,
+    pub(crate) redirect_uri: &'a str,
+    pub(crate) code_challenge: &'a str,
+    pub(crate) client_state: Option<&'a str>,
+    pub(crate) audience: Audience,
+    pub(crate) lifetime_seconds: f64,
 }
 
 pub(crate) async fn insert(
     conn: &mut PgConnection,
-    token: &SecretHash,
-    oauth_client_id: OauthClientId,
-    redirect_uri: &str,
-    code_challenge: &str,
-    client_state: Option<&str>,
-    lifetime_seconds: f64,
+    consent: &NewConsent<'_>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
         INSERT INTO oauth_consents
-          (token_hash, oauth_client_id, redirect_uri, code_challenge, client_state, expires_at)
-        VALUES ($1, $2, $3, $4, $5, now() + make_interval(secs => $6))
+          (token_hash, oauth_client_id, redirect_uri, code_challenge, client_state, audience, expires_at)
+        VALUES ($1, $2, $3, $4, $5, $6, now() + make_interval(secs => $7))
         "#,
-        token.as_bytes(),
-        oauth_client_id as OauthClientId,
-        redirect_uri,
-        code_challenge,
-        client_state,
-        lifetime_seconds,
+        consent.token.as_bytes(),
+        consent.oauth_client_id as OauthClientId,
+        consent.redirect_uri,
+        consent.code_challenge,
+        consent.client_state,
+        consent.audience as Audience,
+        consent.lifetime_seconds,
     )
     .execute(conn)
     .await?;
@@ -49,7 +57,8 @@ pub(crate) async fn find(
           oauth_client_id AS "oauth_client_id: OauthClientId",
           redirect_uri,
           code_challenge,
-          client_state
+          client_state,
+          audience AS "audience: Audience"
         FROM oauth_consents
         WHERE token_hash = $1
           AND expires_at > now()
@@ -74,7 +83,8 @@ pub(crate) async fn take(
           oauth_client_id AS "oauth_client_id: OauthClientId",
           redirect_uri,
           code_challenge,
-          client_state
+          client_state,
+          audience AS "audience: Audience"
         "#,
         token.as_bytes(),
     )

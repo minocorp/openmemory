@@ -2,12 +2,17 @@ use axum::Json;
 use axum::extract::State;
 use serde_json::{Value, json};
 
+use crate::access::Audience;
 use crate::state::AppState;
 
-pub(super) const PROTECTED_RESOURCE_PATH: &str = "/.well-known/oauth-protected-resource/mcp";
+pub(super) const MCP_RESOURCE_PATH: &str = "/.well-known/oauth-protected-resource/mcp";
+pub(super) const API_RESOURCE_PATH: &str = "/.well-known/oauth-protected-resource/api";
 
-pub(crate) fn resource_metadata_url(state: &AppState) -> String {
-    state.public_url().join(PROTECTED_RESOURCE_PATH)
+pub(crate) fn resource_metadata_url(state: &AppState, audience: Audience) -> String {
+    state.public_url().join(match audience {
+        Audience::Mcp => MCP_RESOURCE_PATH,
+        Audience::Api => API_RESOURCE_PATH,
+    })
 }
 
 pub(super) async fn authorization_server(State(state): State<AppState>) -> Json<Value> {
@@ -33,11 +38,18 @@ pub(super) async fn authorization_server(State(state): State<AppState>) -> Json<
     }))
 }
 
-pub(super) async fn protected_resource(State(state): State<AppState>) -> Json<Value> {
-    let url = state.public_url();
+pub(super) async fn protected_mcp(State(state): State<AppState>) -> Json<Value> {
+    protected_resource(&state, state.public_url().resource())
+}
+
+pub(super) async fn protected_api(State(state): State<AppState>) -> Json<Value> {
+    protected_resource(&state, state.public_url().api_resource())
+}
+
+fn protected_resource(state: &AppState, resource: String) -> Json<Value> {
     Json(json!({
-        "resource": url.resource(),
-        "authorization_servers": [url.issuer()],
+        "resource": resource,
+        "authorization_servers": [state.public_url().issuer()],
         "bearer_methods_supported": ["header"],
     }))
 }

@@ -1,8 +1,14 @@
 use sqlx::PgConnection;
 
-use crate::access::ConnectionId;
+use crate::access::{Audience, ConnectionId};
 use crate::auth::token::SecretHash;
 use crate::oauth::ids::OauthClientId;
+
+#[derive(Debug)]
+pub(crate) struct PendingDevice {
+    pub(crate) oauth_client_id: OauthClientId,
+    pub(crate) audience: Audience,
+}
 
 #[derive(Debug)]
 pub(crate) struct DeviceRow {
@@ -19,16 +25,18 @@ pub(crate) async fn insert(
     device_code: &SecretHash,
     user_code: &str,
     oauth_client_id: OauthClientId,
+    audience: Audience,
     lifetime_seconds: f64,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
-        INSERT INTO device_codes (device_code_hash, user_code, oauth_client_id, expires_at)
-        VALUES ($1, $2, $3, now() + make_interval(secs => $4))
+        INSERT INTO device_codes (device_code_hash, user_code, oauth_client_id, audience, expires_at)
+        VALUES ($1, $2, $3, $4, now() + make_interval(secs => $5))
         "#,
         device_code.as_bytes(),
         user_code,
         oauth_client_id as OauthClientId,
+        audience as Audience,
         lifetime_seconds,
     )
     .execute(conn)
@@ -36,13 +44,16 @@ pub(crate) async fn insert(
     Ok(())
 }
 
-pub(crate) async fn find_pending_client(
+pub(crate) async fn find_pending(
     conn: &mut PgConnection,
     user_code: &str,
-) -> Result<Option<OauthClientId>, sqlx::Error> {
-    sqlx::query_scalar!(
+) -> Result<Option<PendingDevice>, sqlx::Error> {
+    sqlx::query_as!(
+        PendingDevice,
         r#"
-        SELECT oauth_client_id AS "oauth_client_id: OauthClientId"
+        SELECT
+          oauth_client_id AS "oauth_client_id: OauthClientId",
+          audience AS "audience: Audience"
         FROM device_codes
         WHERE user_code = $1
           AND connection_id IS NULL

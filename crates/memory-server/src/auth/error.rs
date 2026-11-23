@@ -1,5 +1,6 @@
 use axum::Json;
-use axum::http::StatusCode;
+use axum::http::header::WWW_AUTHENTICATE;
+use axum::http::{HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use serde_json::json;
 use webauthn_rs::prelude::WebauthnError;
@@ -12,6 +13,10 @@ pub(crate) enum AuthError {
     InvalidCredentials,
     #[error("admin required")]
     Forbidden,
+    #[error("bearer token not accepted")]
+    InvalidBearer,
+    #[error("bearer tokens cannot do this")]
+    InsufficientScope,
     #[error("not found")]
     NotFound,
     #[error("invalid or expired token")]
@@ -43,8 +48,12 @@ pub(crate) enum AuthError {
 impl AuthError {
     fn status(&self) -> StatusCode {
         match self {
-            Self::Unauthenticated | Self::InvalidCredentials => StatusCode::UNAUTHORIZED,
-            Self::Forbidden | Self::OriginMismatch => StatusCode::FORBIDDEN,
+            Self::Unauthenticated | Self::InvalidCredentials | Self::InvalidBearer => {
+                StatusCode::UNAUTHORIZED
+            }
+            Self::Forbidden | Self::OriginMismatch | Self::InsufficientScope => {
+                StatusCode::FORBIDDEN
+            }
             Self::NotFound => StatusCode::NOT_FOUND,
             Self::InvalidToken | Self::InvalidInput(_) | Self::PasskeyRejected(_) => {
                 StatusCode::BAD_REQUEST
@@ -64,8 +73,9 @@ impl AuthError {
             Self::Unauthenticated => "unauthenticated",
             Self::InvalidCredentials => "invalid_credentials",
             Self::Forbidden => "forbidden",
+            Self::InsufficientScope => "insufficient_scope",
             Self::NotFound => "not_found",
-            Self::InvalidToken => "invalid_token",
+            Self::InvalidToken | Self::InvalidBearer => "invalid_token",
             Self::InvalidInput(_) => "invalid_input",
             Self::NameTaken => "name_taken",
             Self::PasskeyTaken => "passkey_taken",
@@ -90,6 +100,8 @@ impl IntoResponse for AuthError {
             Self::Unauthenticated
             | Self::InvalidCredentials
             | Self::Forbidden
+            | Self::InvalidBearer
+            | Self::InsufficientScope
             | Self::NotFound
             | Self::InvalidToken
             | Self::InvalidInput(_)
@@ -104,7 +116,14 @@ impl IntoResponse for AuthError {
             Self::InvalidInput(field) => json!({ "error": self.code(), "field": field }),
             _ => json!({ "error": self.code() }),
         };
-        (status, Json(body)).into_response()
+        let mut response = (status, Json(body)).into_response();
+        if matches!(self, Self::InsufficientScope) {
+            response.headers_mut().insert(
+                WWW_AUTHENTICATE,
+                HeaderValue::from_static(r#"Bearer error="insufficient_scope""#),
+            );
+        }
+        response
     }
 }
 

@@ -1,6 +1,6 @@
 use axum::extract::FromRequestParts;
 use axum::http::HeaderValue;
-use axum::http::header::COOKIE;
+use axum::http::header::{AUTHORIZATION, COOKIE};
 use axum::http::request::Parts;
 use sqlx::PgConnection;
 
@@ -52,6 +52,7 @@ impl FromRequestParts<AppState> for WebSession {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
+        refuse_bearer(parts)?;
         csrf::check(parts, state.public_url().issuer())?;
         authenticate(parts, state).await
     }
@@ -64,12 +65,21 @@ impl FromRequestParts<AppState> for BinarySession {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
+        refuse_bearer(parts)?;
         csrf::check_origin(parts, state.public_url().issuer())?;
         authenticate(parts, state).await.map(Self)
     }
 }
 
-async fn authenticate(parts: &Parts, state: &AppState) -> Result<WebSession, AuthError> {
+fn refuse_bearer(parts: &Parts) -> Result<(), AuthError> {
+    if parts.headers.contains_key(AUTHORIZATION) {
+        Err(AuthError::InsufficientScope)
+    } else {
+        Ok(())
+    }
+}
+
+pub(super) async fn authenticate(parts: &Parts, state: &AppState) -> Result<WebSession, AuthError> {
     let token = cookie_token(parts).ok_or(AuthError::Unauthenticated)?;
     let mut conn = state.pool().acquire().await?;
     let row = sessions::find_live(&mut conn, &token.hash(), IDLE_SECONDS, TOUCH_SECONDS)

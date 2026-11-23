@@ -1,4 +1,5 @@
 mod account;
+mod api_session;
 mod bootstrap;
 pub(crate) mod ceremony;
 pub(crate) mod confirmation;
@@ -20,6 +21,7 @@ use utoipa::OpenApi;
 
 use crate::state::AppState;
 
+pub(crate) use api_session::{ApiSession, BinaryApiSession};
 pub(crate) use bootstrap::{Bootstrap, arm_if_no_users};
 pub(crate) use csrf::SameOrigin;
 pub(crate) use error::{AuthError, violated_constraint};

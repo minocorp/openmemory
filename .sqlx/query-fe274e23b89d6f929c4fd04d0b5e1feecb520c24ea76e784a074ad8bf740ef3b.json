@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n          oauth_client_id AS \"oauth_client_id: OauthClientId\",\n          audience AS \"audience: Audience\"\n        FROM device_codes\n        WHERE user_code = $1\n          AND connection_id IS NULL\n          AND denied_at IS NULL\n          AND expires_at > now()\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "oauth_client_id: OauthClientId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_codes",
+            "name": "oauth_client_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "audience: Audience",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_codes",
+            "name": "audience"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "fe274e23b89d6f929c4fd04d0b5e1feecb520c24ea76e784a074ad8bf740ef3b"
+}

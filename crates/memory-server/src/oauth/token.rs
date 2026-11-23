@@ -6,7 +6,7 @@ use axum::{Form, Json};
 use serde::{Deserialize, Serialize};
 use sqlx::PgConnection;
 
-use crate::access::{ConnectionId, connections};
+use crate::access::{Audience, ConnectionId, connections};
 use crate::auth::token::Secret;
 use crate::oauth::clients::{self, Client};
 use crate::oauth::error::{OAuthError, OAuthErrorCode};
@@ -48,13 +48,15 @@ pub(super) async fn token(
     if headers.contains_key(AUTHORIZATION) {
         return Err(OAuthErrorCode::InvalidClient.into());
     }
-    if request
-        .resource
-        .as_deref()
-        .is_some_and(|resource| resource != state.public_url().resource())
-    {
-        return Err(OAuthErrorCode::InvalidTarget.into());
-    }
+    let requested = match request.resource.as_deref() {
+        Some(resource) => Some(
+            state
+                .public_url()
+                .audience_of(resource)
+                .ok_or(OAuthErrorCode::InvalidTarget)?,
+        ),
+        None => None,
+    };
     let client_id = request
         .client_id
         .as_deref()
@@ -63,9 +65,11 @@ pub(super) async fn token(
     let client = clients::stored(&mut conn, client_id).await?;
     drop(conn);
     let issued = match request.grant_type.as_deref() {
-        Some("authorization_code") => authorization_code(&state, &client, &request).await?,
-        Some("refresh_token") => refresh(&state, &client, &request).await?,
-        Some(DEVICE_GRANT) => device_code(&state, &client, &request).await?,
+        Some("authorization_code") => {
+            authorization_code(&state, &client, &request, requested).await?
+        }
+        Some("refresh_token") => refresh(&state, &client, &request, requested).await?,
+        Some(DEVICE_GRANT) => device_code(&state, &client, &request, requested).await?,
         Some(_) | None => return Err(OAuthErrorCode::UnsupportedGrantType.into()),
     };
     Ok((
@@ -79,6 +83,7 @@ async fn authorization_code(
     state: &AppState,
     client: &Client,
     request: &TokenRequest,
+    requested: Option<Audience>,
 ) -> Result<Issued, OAuthError> {
     let (Some(code), Some(redirect_uri), Some(verifier)) = (
         request.code.as_deref(),
@@ -101,7 +106,7 @@ async fn authorization_code(
         || row.oauth_client_id != client.id
         || row.redirect_uri != redirect_uri
         || !challenge.verifies(verifier)
-        || !is_live(&mut conn, row.connection_id).await?
+        || !is_live(&mut conn, row.connection_id, requested).await?
     {
         return Err(OAuthErrorCode::InvalidGrant.into());
     }
@@ -112,6 +117,7 @@ async fn refresh(
     state: &AppState,
     client: &Client,
     request: &TokenRequest,
+    requested: Option<Audience>,
 ) -> Result<Issued, OAuthError> {
     let refresh_token = request
         .refresh_token
@@ -130,7 +136,7 @@ async fn refresh(
         tx.commit().await?;
         return Err(OAuthErrorCode::InvalidGrant.into());
     }
-    if row.is_expired || !is_live(&mut tx, row.connection_id).await? {
+    if row.is_expired || !is_live(&mut tx, row.connection_id, requested).await? {
         return Err(OAuthErrorCode::InvalidGrant.into());
     }
     tokens::mark_rotated(&mut tx, row.id).await?;
@@ -143,6 +149,7 @@ async fn device_code(
     state: &AppState,
     client: &Client,
     request: &TokenRequest,
+    requested: Option<Audience>,
 ) -> Result<Issued, OAuthError> {
     let device_code = request
         .device_code
@@ -185,7 +192,7 @@ async fn device_code(
     }
     let connection_id = row.connection_id.ok_or(OAuthErrorCode::InvalidGrant)?;
     devices::delete(&mut tx, row.id).await?;
-    if !is_live(&mut tx, connection_id).await? {
+    if !is_live(&mut tx, connection_id, requested).await? {
         tx.commit().await?;
         return Err(OAuthErrorCode::InvalidGrant.into());
     }
@@ -194,8 +201,14 @@ async fn device_code(
     Ok(issued)
 }
 
-async fn is_live(conn: &mut PgConnection, id: ConnectionId) -> Result<bool, OAuthError> {
-    Ok(connections::load_actor(conn, id).await?.is_some())
+async fn is_live(
+    conn: &mut PgConnection,
+    id: ConnectionId,
+    requested: Option<Audience>,
+) -> Result<bool, OAuthError> {
+    Ok(connections::load_actor_in(conn, id, requested)
+        .await?
+        .is_some())
 }
 
 async fn issue(
