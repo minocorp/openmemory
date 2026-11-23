@@ -6,7 +6,7 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::api::error::ApiError;
 use crate::api::pages::{OperationView, WrittenView};
-use crate::auth::WebSession;
+use crate::auth::ApiSession;
 use crate::error::ErrorBody;
 use crate::pages::changes::{self, ChangeGroup, ChangedVersion, Changes};
 use crate::pages::ids::{GroupId, PageId, Seq};
@@ -130,7 +130,7 @@ impl From<ChangedVersion> for ChangedVersionView {
     get,
     path = "/api/changes",
     tag = "changes",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("since" = Option<i64>, Query, description = "Defaults to the caller's last seen sequence"),
         ("limit" = Option<u32>, Query),
@@ -139,7 +139,7 @@ impl From<ChangedVersion> for ChangedVersionView {
 )]
 async fn list_changes(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Query(query): Query<ChangesQuery>,
 ) -> Result<Json<ChangesView>, ApiError> {
     let since = match query.since {
@@ -154,13 +154,13 @@ async fn list_changes(
     post,
     path = "/api/changes/seen",
     tag = "changes",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     request_body = SeenRequest,
     responses((status = 200, body = SeenView), (status = 401, body = ErrorBody))
 )]
 async fn mark_seen(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Json(request): Json<SeenRequest>,
 ) -> Result<Json<SeenView>, ApiError> {
     let last_seen_seq = changes::mark_seen(state.pool(), &session.actor, request.seq).await?;
@@ -171,7 +171,7 @@ async fn mark_seen(
     post,
     path = "/api/changes/{group}/revert",
     tag = "changes",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(("group" = i64, Path)),
     responses(
         (status = 200, body = GroupRevertedView),
@@ -182,7 +182,7 @@ async fn mark_seen(
 )]
 async fn revert_group(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path(group): Path<GroupId>,
 ) -> Result<Json<GroupRevertedView>, ApiError> {
     let output = revert::revert_group(state.pool(), &session.actor, group, None).await?;

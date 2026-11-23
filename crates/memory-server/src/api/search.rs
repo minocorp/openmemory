@@ -8,7 +8,7 @@ use serde::Serialize;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::api::error::ApiError;
-use crate::auth::WebSession;
+use crate::auth::ApiSession;
 use crate::error::ErrorBody;
 use crate::files::FileId;
 use crate::pages::ids::PageId;
@@ -100,7 +100,7 @@ fn parse_params(raw: &str) -> Result<SearchInput, ApiError> {
     get,
     path = "/api/search",
     tag = "search",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("q" = Option<String>, Query, description = "Literal text"),
         ("where" = Option<Vec<String>>, Query, style = Form, explode = true, description = "Field conditions, ANDed; repeat the parameter"),
@@ -116,7 +116,7 @@ fn parse_params(raw: &str) -> Result<SearchInput, ApiError> {
 )]
 async fn search(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     RawQuery(raw): RawQuery,
 ) -> Result<Json<SearchView>, ApiError> {
     let input = parse_params(raw.as_deref().unwrap_or_default())?;

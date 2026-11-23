@@ -6,7 +6,7 @@ use time::OffsetDateTime;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::api::error::ApiError;
-use crate::auth::WebSession;
+use crate::auth::ApiSession;
 use crate::error::ErrorBody;
 use crate::files::{FileId, FileRecord};
 use crate::pages::ids::PageId;
@@ -102,12 +102,12 @@ impl From<FileRecord> for TreeFileView {
     get,
     path = "/api/tree",
     tag = "tree",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     responses((status = 200, body = TreeView), (status = 401, body = ErrorBody))
 )]
 async fn get_tree(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
 ) -> Result<Json<TreeView>, ApiError> {
     let tree = tree::load(state.pool(), state.files(), &session.actor).await?;
     Ok(Json(tree.into()))

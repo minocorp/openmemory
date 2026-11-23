@@ -18,7 +18,7 @@ use utoipa::{OpenApi, ToSchema};
 use crate::api::error::ApiError;
 use crate::api::precondition::matches_none_match;
 use crate::api::range::{self, RangeRequest};
-use crate::auth::{BinarySession, WebSession};
+use crate::auth::{ApiSession, BinaryApiSession};
 use crate::error::ErrorBody;
 use crate::files::{FileContent, FileId, FileRecord, FileRef, FilesError};
 use crate::state::AppState;
@@ -105,7 +105,7 @@ pub(super) fn created(record: FileRecord) -> Result<Response, ApiError> {
     post,
     path = "/api/files",
     tag = "files",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("path" = String, Query),
         ("Content-Type" = String, Header, description = "The MIME type of the file"),
@@ -124,7 +124,7 @@ pub(super) fn created(record: FileRecord) -> Result<Response, ApiError> {
 )]
 async fn upload_file(
     State(state): State<AppState>,
-    BinarySession(session): BinarySession,
+    BinaryApiSession(session): BinaryApiSession,
     Query(query): Query<PathQuery>,
     headers: HeaderMap,
     body: Body,
@@ -145,7 +145,7 @@ async fn upload_file(
     get,
     path = "/api/files",
     tag = "files",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(("path" = String, Query)),
     responses(
         (status = 200, body = FileView),
@@ -156,7 +156,7 @@ async fn upload_file(
 )]
 async fn get_file_by_path(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Query(query): Query<PathQuery>,
 ) -> Result<Json<FileView>, ApiError> {
     let path =
@@ -172,7 +172,7 @@ async fn get_file_by_path(
     get,
     path = "/api/files/{id}",
     tag = "files",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(("id" = i64, Path)),
     responses(
         (status = 200, body = FileView),
@@ -183,7 +183,7 @@ async fn get_file_by_path(
 )]
 async fn get_file(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path(id): Path<FileId>,
 ) -> Result<Json<FileView>, ApiError> {
     let record = state
@@ -197,7 +197,7 @@ async fn get_file(
     get,
     path = "/api/files/{id}/content",
     tag = "files",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("id" = i64, Path),
         ("download" = Option<bool>, Query, description = "Force a download instead of inline display"),
@@ -215,7 +215,7 @@ async fn get_file(
 )]
 async fn get_file_content(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path(id): Path<FileId>,
     Query(query): Query<ContentQuery>,
     headers: HeaderMap,
@@ -365,7 +365,7 @@ fn percent_encode(text: &str) -> String {
     delete,
     path = "/api/files/{id}",
     tag = "files",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(("id" = i64, Path)),
     responses(
         (status = 204),
@@ -376,7 +376,7 @@ fn percent_encode(text: &str) -> String {
 )]
 async fn delete_file(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Path(id): Path<FileId>,
 ) -> Result<StatusCode, ApiError> {
     state
