@@ -30,6 +30,14 @@ The server listens on `MEMORY_HTTP_BIND` (default `127.0.0.1:8080`). If your pro
 | `MEMORY_BACKUP_S3_URI_STYLE` | `host` or `path` | `host` |
 | `MEMORY_S3_ENDPOINT`, `_BUCKET`, `_REGION`, `_ACCESS_KEY`, `_SECRET_KEY` | Store blobs in S3 instead of the `blobs` volume | none |
 
+## Access
+
+`/mcp` and `/api` are separate protected resources of one authorization server. A token is bound to one audience (`<MEMORY_PUBLIC_URL>/mcp` or `<MEMORY_PUBLIC_URL>/api`) and the other endpoint rejects it. `/api` accepts the web session cookie or a bearer token; bearer requests carry the connection's folder scope and write setting, skip cookie origin checks and are rate limited per client address. Users, invites, passkeys, purge, export and import accept the session only: any bearer token gets `403 insufficient_scope`.
+
+The `memory` CLI is the pre-registered public client `memory-cli` (loopback redirect on any port, device grant, PKCE). Its connections appear in Settings with the others and can be revoked there. Personal access tokens for scripts are created in Settings after a passkey confirmation, with a required expiry, a folder scope and a write setting. The token is shown once, is valid for `/api` only and has no refresh token. `/api` errors are `application/problem+json` (RFC 9457) with types `urn:memory:problem:<code>`.
+
+The CLI keeps its tokens in the OS keychain and falls back to `~/.config/memory/credentials.json` (mode 0600) where none exists. `MEMORY_TOKEN` and `MEMORY_HOST` override it.
+
 ## Backup
 
 The `pgbackrest` container takes a full backup weekly, an incremental daily, checks WAL archiving every 5 minutes and snapshots the `blobs` volume hourly with restic. Without `MEMORY_BACKUP_S3_*` the repository is the local `backup` volume, which does not survive losing the host: set an S3 target. With one set, every backup goes to both repositories.
@@ -87,7 +95,7 @@ cd web && pnpm install && pnpm dev
 
 Open `http://localhost:5173`, not the server port. Vite proxies `/api`, `/mcp`, `/oauth`, `/.well-known` and `/healthz` to `http://localhost:8080` (`MEMORY_API_ORIGIN` changes the target). The server checks the `Origin` of every non-GET request against `MEMORY_PUBLIC_URL`, and passkeys are bound to its host, so the public URL must be the Vite origin. The first start prints the bootstrap link with that origin.
 
-After a server change that touches the API, regenerate the web types with `pnpm gen:api`.
+After a server change that touches the API, regenerate the OpenAPI document and the web types with `pnpm gen:api`. The REST request and response types live in `crates/memory-api`, shared by the server and the CLI.
 
 ### End-to-end tests
 

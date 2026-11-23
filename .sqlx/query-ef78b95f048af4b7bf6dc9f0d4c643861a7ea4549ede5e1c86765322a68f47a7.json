@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO connections (user_id, name, scopes, can_write, audience, expires_at, personal_token_hash) VALUES ($1, 'ci', ARRAY['*'], $2, 'api', now() + interval '1 day', $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bool",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ef78b95f048af4b7bf6dc9f0d4c643861a7ea4549ede5e1c86765322a68f47a7"
+}

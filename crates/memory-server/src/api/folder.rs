@@ -7,7 +7,7 @@ use serde::Deserialize;
 use utoipa::OpenApi;
 
 use crate::api::error::ApiError;
-use crate::auth::WebSession;
+use crate::auth::ApiSession;
 use crate::pages::error::PagesError;
 use crate::pages::folder;
 use crate::state::AppState;
@@ -45,7 +45,7 @@ fn entry_kind(kind: memory_ops::EntryKind) -> EntryKind {
     get,
     path = "/api/folder",
     tag = "tree",
-    security(("session" = [])),
+    security(("session" = []), ("bearer" = [])),
     params(
         ("path" = Option<String>, Query, description = "Folder path; empty for the top level"),
         ("limit" = Option<u32>, Query, description = "At most 500; default 100"),
@@ -60,7 +60,7 @@ fn entry_kind(kind: memory_ops::EntryKind) -> EntryKind {
 )]
 async fn list_folder(
     State(state): State<AppState>,
-    session: WebSession,
+    session: ApiSession,
     Query(query): Query<FolderQuery>,
 ) -> Result<Json<FolderListing>, ApiError> {
     let path = query

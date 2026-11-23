@@ -5,8 +5,8 @@ Self-hosted memory shared by people and their AI agents.
 People and agents read and write the same pages. Every change is recorded with its author and can be reverted. Originals such as PDFs sit beside the pages that cite them.
 
 - Pages: markdown with fields, current truth and an append-only timeline
-- Agents: Claude Code, Claude, ChatGPT, Codex and Cursor over MCP, plus the `memory` CLI
-- People: web app with passkey sign-in
+- Agents: Claude Code, Claude, ChatGPT, Codex and Cursor over MCP
+- People: web app with passkey sign-in, and the `memory` CLI
 - Search: Korean and English, over pages and PDF text
 - Backups: continuous, encrypted, with point-in-time restore
 
@@ -28,16 +28,24 @@ Images: `ghcr.io/minodevss/memory` and `ghcr.io/minodevss/memory-postgres`.
 
 ## Connect an agent
 
-The MCP endpoint is `<MEMORY_PUBLIC_URL>/mcp`. Each connection is approved in the browser with a passkey.
+The MCP endpoint is `<MEMORY_PUBLIC_URL>/mcp`. Each connection is approved in the browser with a passkey. Claude, ChatGPT, Codex and Cursor take the URL as a custom connector. The home screen lists the exact steps for each.
+
+## CLI
 
 ```
 curl -fsSL https://raw.githubusercontent.com/minodevss/memory/main/install.sh | sh
-memory login https://memory.example.com
+memory auth login --host https://memory.example.com
+memory page list
+memory page view clients/acme
+memory page append clients/acme "Called back" --source phone
+memory page edit clients/acme
+memory search renewal --where status=active
+memory file upload ./contract.pdf clients/acme/contract.pdf
 ```
 
-The script installs the latest release to `~/.local/bin`. Set `MEMORY_VERSION` for a fixed tag, `MEMORY_INSTALL_DIR` for another directory, or `MEMORY_DOWNLOAD_URL` for a mirror.
+The script installs the latest release to `~/.local/bin`. Set `MEMORY_VERSION` for a fixed tag, `MEMORY_INSTALL_DIR` for another directory, or `MEMORY_DOWNLOAD_URL` for a mirror. `memory auth login` opens the browser; add `--device` on a machine without one. Output is JSON when stdout is not a terminal or with `--json`. `memory api /api/tree` makes any authenticated REST call, and `memory completion zsh` prints shell completions.
 
-Claude, ChatGPT, Codex and Cursor take the same URL as a custom connector. The home screen lists the exact steps for each.
+For CI create a personal access token in Settings, then set `MEMORY_HOST` and `MEMORY_TOKEN`. They override stored credentials.
 
 ## Docs
 

@@ -1804,6 +1804,9 @@
         "security": [
           {
             "session": []
+          },
+          {
+            "bearer": []
           }
         ]
       }
