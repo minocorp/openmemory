@@ -13,7 +13,7 @@ RUN curl -fsSL -o pg_bigm.tar.gz "https://github.com/pgbigm/pg_bigm/archive/refs
 FROM postgres:17
 COPY --from=build /out/usr/ /usr/
 RUN apt-get update \
- && apt-get install -y --no-install-recommends pgbackrest restic jq \
+ && apt-get install -y --no-install-recommends ca-certificates pgbackrest restic jq \
  && rm -rf /var/lib/apt/lists/* \
  && install -d -o postgres -g postgres /backup /etc/pgbackrest /var/log/pgbackrest
 ENV PGBACKREST_STANZA=memory
