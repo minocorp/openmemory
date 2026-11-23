@@ -789,7 +789,10 @@ async fn the_device_flow_issues_tokens_after_approval(pool: PgPool) -> TestResul
     let (mut admin, _) = app.admin().await?;
     let client_id = register(&app, REDIRECT).await?;
     let start = app
-        .form("/oauth/device", &[("client_id", &client_id)])
+        .form(
+            "/oauth/device",
+            &[("client_id", &client_id), ("resource", RESOURCE)],
+        )
         .await?;
     assert_eq!(start.status, StatusCode::OK, "{:?}", start.body);
     let device_code = start.body["device_code"].as_str().ok_or("no device code")?;
@@ -856,7 +859,10 @@ async fn device_codes_can_be_denied_expire_and_belong_to_one_client(pool: PgPool
     let grant_type = "urn:ietf:params:oauth:grant-type:device_code";
 
     let denied = app
-        .form("/oauth/device", &[("client_id", &client_id)])
+        .form(
+            "/oauth/device",
+            &[("client_id", &client_id), ("resource", RESOURCE)],
+        )
         .await?;
     let user_code = denied.body["user_code"].as_str().ok_or("no code")?;
     let device_code = denied.body["device_code"].as_str().ok_or("no code")?;
@@ -877,7 +883,10 @@ async fn device_codes_can_be_denied_expire_and_belong_to_one_client(pool: PgPool
     assert_eq!(poll.body["error"], "access_denied");
 
     let expiring = app
-        .form("/oauth/device", &[("client_id", &client_id)])
+        .form(
+            "/oauth/device",
+            &[("client_id", &client_id), ("resource", RESOURCE)],
+        )
         .await?;
     let device_code = expiring.body["device_code"].as_str().ok_or("no code")?;
     sqlx::query("UPDATE device_codes SET created_at = now() - interval '2 hours', expires_at = now() - interval '1 hour'")
@@ -896,7 +905,10 @@ async fn device_codes_can_be_denied_expire_and_belong_to_one_client(pool: PgPool
     assert_eq!(poll.body["error"], "expired_token");
 
     let mine = app
-        .form("/oauth/device", &[("client_id", &client_id)])
+        .form(
+            "/oauth/device",
+            &[("client_id", &client_id), ("resource", RESOURCE)],
+        )
         .await?;
     let device_code = mine.body["device_code"].as_str().ok_or("no code")?;
     let stolen = app
