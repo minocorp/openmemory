@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "3"
 
 [workspace.package]
-version = "0.1.3"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.100"
 license = "Apache-2.0"
@@ -19,6 +19,7 @@ bytes = { version = "1.12.2", default-features = false }
 clap = { version = "4.6.9", default-features = false, features = ["derive", "env", "help", "std", "usage"] }
 futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
 governor = { version = "0.10.4", default-features = false, features = ["dashmap", "std"] }
+memory-api = { path = "crates/memory-api" }
 memory-ops = { path = "crates/memory-ops" }
 object_store = { version = "0.14.2", default-features = false, features = ["aws", "fs"] }
 rand = { version = "0.10.4", default-features = false, features = ["std", "std_rng"] }
