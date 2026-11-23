@@ -86,3 +86,55 @@ jobs:
           docker buildx imagetools create \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf "$IMAGE@sha256:%s " *)
+
+  cli:
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      fail-fast: true
+      matrix:
+        target:
+          - triple: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
+          - triple: aarch64-unknown-linux-musl
+            runner: ubuntu-24.04-arm
+          - triple: aarch64-apple-darwin
+            runner: macos-latest
+          - triple: x86_64-apple-darwin
+            runner: macos-latest
+    runs-on: ${{ matrix.target.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install
+      - run: rustup target add ${{ matrix.target.triple }}
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools cmake
+      - run: cargo build -p memory-cli --release --locked --target ${{ matrix.target.triple }}
+        env:
+          SQLX_OFFLINE: "true"
+      - run: tar -czf "memory-$TARGET.tar.gz" -C "target/$TARGET/release" memory
+        env:
+          TARGET: ${{ matrix.target.triple }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cli_${{ matrix.target.triple }}
+          path: memory-${{ matrix.target.triple }}.tar.gz
+          if-no-files-found: error
+
+  attach:
+    needs: cli
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: assets
+          pattern: cli_*
+          merge-multiple: true
+      - working-directory: assets
+        run: sha256sum memory-*.tar.gz > SHA256SUMS
+      - run: gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
+      - run: gh release upload "$GITHUB_REF_NAME" assets/* --clobber

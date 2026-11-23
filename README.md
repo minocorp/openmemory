@@ -31,9 +31,11 @@ Images: `ghcr.io/minodevss/memory` and `ghcr.io/minodevss/memory-postgres`.
 The MCP endpoint is `<MEMORY_PUBLIC_URL>/mcp`. Each connection is approved in the browser with a passkey.
 
 ```
-claude mcp add --transport http memory https://memory.example.com/mcp
+curl -fsSL https://raw.githubusercontent.com/minodevss/memory/main/install.sh | sh
 memory login https://memory.example.com
 ```
+
+The script installs the latest release to `~/.local/bin`. Set `MEMORY_VERSION` for a fixed tag, `MEMORY_INSTALL_DIR` for another directory, or `MEMORY_DOWNLOAD_URL` for a mirror.
 
 Claude, ChatGPT, Codex and Cursor take the same URL as a custom connector. The home screen lists the exact steps for each.
 
