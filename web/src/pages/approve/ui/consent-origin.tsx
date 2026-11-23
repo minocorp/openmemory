@@ -12,6 +12,7 @@ export function ConsentOrigin({ consent }: ConsentOriginProps) {
       <p className="flex flex-wrap items-center gap-2">
         <span className="text-base font-semibold break-all">{host ?? "Device"}</span>
         {consent.localhost_only ? <Badge variant="outline">This computer only</Badge> : null}
+        {consent.client.official ? <Badge variant="secondary">Official memory CLI</Badge> : null}
         {consent.client.unverified ? <Badge variant="destructive">Unverified client</Badge> : null}
       </p>
       {consent.name_matches_redirect === false ? (

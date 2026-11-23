@@ -19,6 +19,8 @@ describe("agent setups", () => {
     expect(JSON.parse(cursor)).toEqual({
       mcpServers: { memory: { url: "https://memory.example.com/mcp" } },
     });
-    expect(find("cli")?.snippets[0]?.text).toBe("memory login https://memory.example.com");
+    expect(find("cli")?.snippets[0]?.text).toBe(
+      "memory auth login --host https://memory.example.com",
+    );
   });
 });

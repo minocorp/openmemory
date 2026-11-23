@@ -30,7 +30,7 @@ test.describe.serial("home", () => {
     await panel.getByText("Cursor", { exact: true }).click();
     await panel.getByText("memory CLI", { exact: true }).click();
     await expect(page.getByLabel("memory CLI Command", { exact: true })).toContainText(
-      "memory login http://localhost",
+      "memory auth login --host http://localhost",
     );
     await shoot(page, "30-home-first-run");
   });

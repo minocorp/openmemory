@@ -53,7 +53,7 @@ export function agentSetups(origin: string): AgentSetup[] {
       id: "cli",
       label: "memory CLI",
       steps: [],
-      snippets: [{ label: "Command", text: `memory login ${origin}` }],
+      snippets: [{ label: "Command", text: `memory auth login --host ${origin}` }],
     },
   ];
 }

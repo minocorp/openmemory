@@ -740,6 +740,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["create_token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tree": {
         parameters: {
             query?: never;
@@ -825,7 +841,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        Action: "add_passkey" | "remove_passkey" | "create_invite" | "set_admin" | "export";
+        Action: "add_passkey" | "remove_passkey" | "create_invite" | "set_admin" | "export" | "create_token";
         AddPasskeyFinish: {
             challenge: string;
             credential: Record<string, unknown>;
@@ -850,6 +866,8 @@ export interface components {
             name?: components["schemas"]["Name"] | null;
             scopes?: string[] | null;
         };
+        /** @enum {string} */
+        Audience: "api" | "mcp";
         /** @enum {string} */
         BackupProblem: "status_missing" | "status_stale" | "full_backup_stale" | "backup_stale" | "wal_archive_stale" | "blob_backup_stale" | "restore_test_failed" | "restore_test_stale";
         BackupReport: {
@@ -900,6 +918,7 @@ export interface components {
         ClientSummary: {
             client_id: string;
             name: string;
+            official: boolean;
             unverified: boolean;
         };
         Confirmation: {
@@ -918,16 +937,22 @@ export interface components {
         };
         /** Format: int64 */
         ConnectionId: number;
+        /** @enum {string} */
+        ConnectionKind: "oauth" | "token";
         ConnectionUpdate: {
             can_write?: boolean | null;
             name?: components["schemas"]["Name"] | null;
             scopes?: string[] | null;
         };
         ConnectionView: {
+            audience: components["schemas"]["Audience"];
             can_write: boolean;
             /** Format: date-time */
             created_at: string;
+            /** Format: date-time */
+            expires_at?: string | null;
             id: components["schemas"]["ConnectionId"];
+            kind: components["schemas"]["ConnectionKind"];
             /** Format: date-time */
             last_used_at?: string | null;
             name: string;
@@ -937,6 +962,7 @@ export interface components {
             user_id: components["schemas"]["UserId"];
         };
         ConsentView: {
+            audience: components["schemas"]["Audience"];
             client: components["schemas"]["ClientSummary"];
             default_can_write: boolean;
             default_scopes: string[];
@@ -1214,6 +1240,21 @@ export interface components {
             file?: components["schemas"]["FileSourceView"] | null;
             source: string;
             text: string;
+        };
+        TokenCreate: {
+            can_write?: boolean | null;
+            confirmation: components["schemas"]["Confirmation"];
+            /** Format: int32 */
+            expires_in_days: number;
+            name: components["schemas"]["Name"];
+            scopes?: string[] | null;
+        };
+        TokenCreated: {
+            /** Format: date-time */
+            expires_at: string;
+            id: components["schemas"]["ConnectionId"];
+            name: string;
+            token: string;
         };
         TreeFile: {
             /** Format: int64 */
@@ -3774,6 +3815,62 @@ export interface operations {
                 };
             };
             413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    create_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenCreate"];
+            };
+        };
+        responses: {
+            /** @description The token is shown once */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenCreated"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

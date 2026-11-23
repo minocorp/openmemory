@@ -1,7 +1,8 @@
 import { ChevronRight } from "lucide-react";
 
+import { CopySnippet } from "@/shared/ui/copy-snippet";
+
 import { agentSetups } from "../model/agent-setups";
-import { CopySnippet } from "./copy-snippet";
 
 export function ConnectAgent() {
   const setups = agentSetups(window.location.origin);
