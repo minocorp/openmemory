@@ -179,3 +179,69 @@ async fn trusted_proxies_never_trigger_the_warning() {
     hit(&app, "POST", "/oauth/token", "198.51.100.1").await;
     assert!(!limits.warned_unconfigured_proxy.load(Ordering::Relaxed));
 }
+
+const CLIENT_HEADER: &str = "cf-connecting-ip";
+
+fn header_app() -> Router {
+    app_with(
+        RateLimits::behind(vec!["10.0.0.0/8".parse().unwrap()])
+            .reading_client_ip_from(Some(HeaderName::from_static(CLIENT_HEADER))),
+    )
+}
+
+async fn register(app: &Router, peer: &str, headers: &[(&str, &str)]) -> StatusCode {
+    let mut builder = Request::builder().method("POST").uri("/oauth/register");
+    for (name, value) in headers {
+        builder = builder.header(*name, *value);
+    }
+    let mut request = builder.body(Body::empty()).unwrap();
+    request
+        .extensions_mut()
+        .insert(ConnectInfo(peer.parse::<SocketAddr>().unwrap()));
+    app.clone().oneshot(request).await.unwrap().status()
+}
+
+async fn spend(app: &Router, peer: &str, headers: &[(&str, &str)]) {
+    for _ in 0..70 {
+        register(app, peer, headers).await;
+    }
+}
+
+#[tokio::test]
+async fn a_trusted_peer_gets_its_client_from_the_configured_header() {
+    let app = header_app();
+    let forwarded = ("x-forwarded-for", "192.0.2.1");
+    spend(&app, PROXY, &[(CLIENT_HEADER, "203.0.113.7"), forwarded]).await;
+    let same_client = register(&app, PROXY, &[(CLIENT_HEADER, "203.0.113.7")]).await;
+    let other_client = register(&app, PROXY, &[(CLIENT_HEADER, "203.0.113.8"), forwarded]).await;
+    assert_eq!(same_client, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(other_client, StatusCode::OK);
+}
+
+#[tokio::test]
+async fn an_untrusted_peer_cannot_choose_its_client_with_the_configured_header() {
+    let app = header_app();
+    let peer = "198.51.100.9:5000";
+    spend(&app, peer, &[(CLIENT_HEADER, "203.0.113.7")]).await;
+    let rotated = register(&app, peer, &[(CLIENT_HEADER, "203.0.113.8")]).await;
+    assert_eq!(rotated, StatusCode::TOO_MANY_REQUESTS);
+}
+
+#[tokio::test]
+async fn a_malformed_or_missing_client_header_falls_back_to_forwarded_for_then_the_peer() {
+    let app = header_app();
+    spend(
+        &app,
+        PROXY,
+        &[
+            (CLIENT_HEADER, "203.0.113.7, 192.0.2.1"),
+            ("x-forwarded-for", "203.0.113.9"),
+        ],
+    )
+    .await;
+    let via_forwarded = register(&app, PROXY, &[("x-forwarded-for", "203.0.113.9")]).await;
+    assert_eq!(via_forwarded, StatusCode::TOO_MANY_REQUESTS);
+    spend(&app, PROXY, &[(CLIENT_HEADER, "garbage")]).await;
+    let via_peer = register(&app, PROXY, &[(CLIENT_HEADER, "also garbage")]).await;
+    assert_eq!(via_peer, StatusCode::TOO_MANY_REQUESTS);
+}
