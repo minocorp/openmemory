@@ -97,3 +97,7 @@ cd web && pnpm exec playwright install chromium && pnpm e2e
 ```
 
 `pnpm e2e` needs the dev Postgres above, Rust and Chromium. It recreates the database `memory_e2e` in it, builds and starts `memory-server` on `127.0.0.1:8081` with a bootstrap link, starts Vite on `localhost:4173` and drives Chromium with a virtual WebAuthn authenticator. Screenshots of each screen land in `run/ui/`. The server runs with `MEMORY_TRUSTED_PROXIES=127.0.0.1,::1` and every browser context sends its own `X-Forwarded-For`, so the per-IP rate limits do not couple tests. `E2E_EMBEDDED=1` after `pnpm build` serves the SPA from `memory-server` itself instead of Vite, which is how `60-csp.spec.ts` checks the content security policy. `E2E_INSTANCE=n` moves the web and API ports, the database and the blob directory so several runs can go in parallel; pass `--output=<dir>` to keep their `test-results` apart.
+
+## Release
+
+Set `version` in the root `Cargo.toml`, merge, then publish a GitHub release tagged `v<version>`. The release workflow refuses a tag that does not match and attaches the CLI binaries and images.

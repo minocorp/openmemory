@@ -104,6 +104,8 @@ jobs:
     runs-on: ${{ matrix.target.runner }}
     steps:
       - uses: actions/checkout@v7
+      - name: Tag matches the crate version
+        run: test "${GITHUB_REF_NAME#v}" = "$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml)"
       - run: rustup toolchain install
       - run: rustup target add ${{ matrix.target.triple }}
       - if: runner.os == 'Linux'
