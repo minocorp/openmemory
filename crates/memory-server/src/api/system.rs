@@ -11,11 +11,11 @@ use crate::api::error::ApiError;
 use crate::api::files::read_body;
 use crate::auth::confirmation::{Action, Confirmed};
 use crate::auth::{BinarySession, WebSession};
-use crate::backup::{BackupReport, Problem};
-use crate::error::ErrorBody;
+use crate::backup::{BackupProblem, BackupReport};
 use crate::state::AppState;
 use crate::system::{self, DatabaseStatus, SystemStatus};
 use crate::transfer::{self, ImportReport, MAX_ARCHIVE_BYTES, TransferError};
+use memory_api::Problem;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -23,7 +23,7 @@ use crate::transfer::{self, ImportReport, MAX_ARCHIVE_BYTES, TransferError};
     components(schemas(
         DatabaseStatus,
         BackupReport,
-        Problem,
+        BackupProblem,
         SystemStatus,
         ImportReport,
         transfer::Skipped,
@@ -46,8 +46,8 @@ pub(super) fn router() -> Router<AppState> {
     security(("session" = [])),
     responses(
         (status = 200, body = SystemStatus),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn get_system(
@@ -66,8 +66,8 @@ async fn get_system(
     request_body = Confirmed,
     responses(
         (status = 200, description = "A zip with `pages/<path>.md` for every page and `files/<path>` for every file", content_type = "application/zip"),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn export(
@@ -100,10 +100,10 @@ async fn export(
     request_body(content_type = "application/zip", description = "An archive in the export layout. This route takes the zip as the request body instead of JSON; it still needs the session cookie and a matching Origin header."),
     responses(
         (status = 200, description = "Entries that could not be imported are listed in `skipped`", body = ImportReport),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
-        (status = 413, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
+        (status = 413, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn import(

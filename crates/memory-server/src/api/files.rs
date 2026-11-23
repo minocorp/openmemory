@@ -11,32 +11,26 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Json, Router};
 use bytes::Bytes;
-use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
-use utoipa::{OpenApi, ToSchema};
+use memory_api::{FileText, FileView};
+use serde::Deserialize;
+use utoipa::OpenApi;
 
 use crate::api::error::ApiError;
 use crate::api::precondition::matches_none_match;
 use crate::api::range::{self, RangeRequest};
 use crate::auth::{BinarySession, WebSession};
-use crate::error::ErrorBody;
 use crate::files::{FileContent, FileId, FileRecord, FileRef, FilesError};
 use crate::state::AppState;
-
-#[derive(Debug, Serialize, ToSchema)]
-pub(super) struct FileView {
-    id: FileId,
-    path: String,
-    mime: String,
-    size: i64,
-    page_count: i64,
-    #[serde(with = "time::serde::rfc3339")]
-    created_at: OffsetDateTime,
-}
+use memory_api::Problem;
 
 #[derive(Debug, Deserialize)]
 struct PathQuery {
     path: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct TextQuery {
+    page: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -46,8 +40,15 @@ struct ContentQuery {
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(upload_file, get_file_by_path, get_file, get_file_content, delete_file),
-    components(schemas(FileView))
+    paths(
+        upload_file,
+        get_file_by_path,
+        get_file,
+        get_file_content,
+        get_file_text,
+        delete_file
+    ),
+    components(schemas(FileView, FileText))
 )]
 pub(super) struct Doc;
 
@@ -56,18 +57,17 @@ pub(super) fn router() -> Router<AppState> {
         .route("/api/files", get(get_file_by_path).post(upload_file))
         .route("/api/files/{id}", get(get_file).delete(delete_file))
         .route("/api/files/{id}/content", get(get_file_content))
+        .route("/api/files/{id}/text", get(get_file_text))
 }
 
-impl From<FileRecord> for FileView {
-    fn from(record: FileRecord) -> Self {
-        Self {
-            id: record.id,
-            path: record.path.to_string(),
-            mime: record.mime,
-            size: record.size,
-            page_count: record.page_count,
-            created_at: record.created_at,
-        }
+pub(super) fn file_view(record: FileRecord) -> FileView {
+    FileView {
+        id: record.id.0,
+        path: record.path.to_string(),
+        mime: record.mime,
+        size: record.size,
+        page_count: record.page_count,
+        created_at: record.created_at,
     }
 }
 
@@ -96,7 +96,7 @@ pub(super) fn content_type(headers: &HeaderMap) -> Result<&str, ApiError> {
 pub(super) fn created(record: FileRecord) -> Result<Response, ApiError> {
     let location = HeaderValue::from_str(&format!("/api/files/{}", record.id.0))
         .map_err(|_| ApiError::InvalidInput("path"))?;
-    let mut response = (StatusCode::CREATED, Json(FileView::from(record))).into_response();
+    let mut response = (StatusCode::CREATED, Json(file_view(record))).into_response();
     response.headers_mut().insert(LOCATION, location);
     Ok(response)
 }
@@ -113,13 +113,13 @@ pub(super) fn created(record: FileRecord) -> Result<Response, ApiError> {
     request_body(content_type = "application/octet-stream", description = "The raw file bytes. This route takes the file as the request body instead of JSON; it still needs the session cookie and a matching Origin header."),
     responses(
         (status = 201, body = FileView, headers(("Location" = String))),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
-        (status = 409, body = ErrorBody),
-        (status = 413, body = ErrorBody),
-        (status = 415, body = ErrorBody),
-        (status = 422, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
+        (status = 409, body = Problem, content_type = "application/problem+json"),
+        (status = 413, body = Problem, content_type = "application/problem+json"),
+        (status = 415, body = Problem, content_type = "application/problem+json"),
+        (status = 422, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn upload_file(
@@ -149,9 +149,9 @@ async fn upload_file(
     params(("path" = String, Query)),
     responses(
         (status = 200, body = FileView),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn get_file_by_path(
@@ -165,7 +165,7 @@ async fn get_file_by_path(
         .files()
         .metadata(&session.actor, &FileRef::Path(path))
         .await?;
-    Ok(Json(record.into()))
+    Ok(Json(file_view(record)))
 }
 
 #[utoipa::path(
@@ -176,9 +176,9 @@ async fn get_file_by_path(
     params(("id" = i64, Path)),
     responses(
         (status = 200, body = FileView),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 410, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 410, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn get_file(
@@ -190,7 +190,7 @@ async fn get_file(
         .files()
         .metadata(&session.actor, &FileRef::Id(id))
         .await?;
-    Ok(Json(record.into()))
+    Ok(Json(file_view(record)))
 }
 
 #[utoipa::path(
@@ -207,9 +207,9 @@ async fn get_file(
         (status = 200, description = "The file bytes", content_type = "application/octet-stream", headers(("ETag" = String), ("Accept-Ranges" = String), ("Content-Disposition" = String))),
         (status = 206, description = "The requested byte range", content_type = "application/octet-stream", headers(("Content-Range" = String))),
         (status = 304),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 410, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 410, body = Problem, content_type = "application/problem+json"),
         (status = 416, description = "The range starts beyond the end of the file"),
     )
 )]
@@ -362,6 +362,44 @@ fn percent_encode(text: &str) -> String {
 }
 
 #[utoipa::path(
+    get,
+    path = "/api/files/{id}/text",
+    tag = "files",
+    security(("session" = [])),
+    params(
+        ("id" = i64, Path),
+        ("page" = Option<u32>, Query, description = "Text page number, from 1"),
+    ),
+    responses(
+        (status = 200, body = FileText),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, description = "No such file or text page", body = Problem, content_type = "application/problem+json"),
+        (status = 422, description = "The file has no extracted text pages", body = Problem, content_type = "application/problem+json"),
+    )
+)]
+async fn get_file_text(
+    State(state): State<AppState>,
+    session: WebSession,
+    Path(id): Path<FileId>,
+    Query(query): Query<TextQuery>,
+) -> Result<Json<FileText>, ApiError> {
+    let file = FileRef::Id(id);
+    let record = state.files().metadata(&session.actor, &file).await?;
+    let page_count = u32::try_from(record.page_count).unwrap_or(u32::MAX);
+    if page_count == 0 {
+        return Err(ApiError::NoTextPages);
+    }
+    let page = query.page.unwrap_or(1);
+    let text = state.files().page_text(&session.actor, &file, page).await?;
+    Ok(Json(FileText {
+        path: record.path.to_string(),
+        page,
+        page_count,
+        text,
+    }))
+}
+
+#[utoipa::path(
     delete,
     path = "/api/files/{id}",
     tag = "files",
@@ -369,9 +407,9 @@ fn percent_encode(text: &str) -> String {
     params(("id" = i64, Path)),
     responses(
         (status = 204),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
-        (status = 404, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn delete_file(

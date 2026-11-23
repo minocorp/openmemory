@@ -88,7 +88,7 @@ async fn a_link_is_visible_and_redeemable_once_without_a_session(pool: PgPool) {
 
     let (status, spent) = send(&fx, Method::GET, &link.token, None, b"").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
-    assert_eq!(spent["error"], "link_invalid");
+    assert_eq!(spent["type"], "urn:memory:problem:link_invalid");
     let (status, _) = send(&fx, Method::POST, &link.token, Some("text/plain"), b"again").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
@@ -98,7 +98,7 @@ async fn unknown_tokens_are_not_found(pool: PgPool) {
     let fx = fixture(pool).await;
     let (status, body) = send(&fx, Method::GET, "nope", None, b"").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
-    assert_eq!(body["error"], "link_invalid");
+    assert_eq!(body["type"], "urn:memory:problem:link_invalid");
     let (status, _) = send(&fx, Method::POST, "nope", Some("text/plain"), b"x").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
@@ -131,7 +131,7 @@ async fn the_token_is_checked_before_the_body_is_considered(pool: PgPool) {
     let fx = fixture(pool).await;
     let (status, body) = send(&fx, Method::POST, "nope", None, b"x").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
-    assert_eq!(body["error"], "link_invalid");
+    assert_eq!(body["type"], "urn:memory:problem:link_invalid");
     let too_big: &'static [u8] = &[b'x'; 100];
     let (status, _) = send(&fx, Method::POST, "nope", Some("text/plain"), too_big).await;
     assert_eq!(status, StatusCode::NOT_FOUND);
@@ -170,7 +170,7 @@ async fn upload_bodies_beyond_the_concurrency_cap_are_turned_away(pool: PgPool) 
     }
     let (status, body) = send(&fx, Method::POST, &link.token, Some("text/plain"), b"x").await;
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
-    assert_eq!(body["error"], "busy");
+    assert_eq!(body["type"], "urn:memory:problem:busy");
     held.pop();
     let (status, _) = send(&fx, Method::POST, &link.token, Some("text/plain"), b"x").await;
     assert_eq!(status, StatusCode::CREATED);

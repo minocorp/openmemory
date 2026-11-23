@@ -1,6 +1,7 @@
 mod changes;
 mod error;
 mod files;
+mod folder;
 mod pages;
 mod precondition;
 mod purge;
@@ -15,10 +16,10 @@ mod tests;
 
 use axum::routing::get;
 use axum::{Json, Router};
+use memory_api::Problem;
 use utoipa::openapi::security::{ApiKey, ApiKeyValue, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
-use crate::error::ErrorBody;
 use crate::state::AppState;
 
 const SESSION_SCHEME: &str = "session";
@@ -27,7 +28,7 @@ const SESSION_COOKIE: &str = "__Host-session";
 #[derive(OpenApi)]
 #[openapi(
     paths(openapi_document),
-    components(schemas(ErrorBody)),
+    components(schemas(Problem)),
     modifiers(&DocumentSetup)
 )]
 struct Root;
@@ -54,6 +55,7 @@ pub(crate) fn router() -> Router<AppState> {
         .route("/api/openapi.json", get(openapi_document))
         .merge(pages::router())
         .merge(files::router())
+        .merge(folder::router())
         .merge(upload_links::router())
         .merge(tree::router())
         .merge(search::router())
@@ -67,6 +69,7 @@ pub(crate) fn openapi() -> utoipa::openapi::OpenApi {
     for part in [
         pages::Doc::openapi(),
         files::Doc::openapi(),
+        folder::Doc::openapi(),
         upload_links::Doc::openapi(),
         tree::Doc::openapi(),
         search::Doc::openapi(),

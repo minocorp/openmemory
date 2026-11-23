@@ -8,7 +8,7 @@ use std::sync::Arc;
 use sqlx::PgPool;
 use time::{Duration, OffsetDateTime};
 
-pub(crate) use assessment::{BackupReport, Problem};
+pub(crate) use assessment::{BackupProblem, BackupReport};
 pub(crate) use config::BackupConfig;
 
 #[derive(Debug, Clone, Default)]

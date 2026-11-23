@@ -139,7 +139,7 @@ async fn a_group_revert_is_blocked_when_a_page_changed_afterwards(pool: PgPool) 
         .post(&format!("/api/changes/{group}/revert"), json!({}))
         .await?;
     assert_eq!(blocked.status, StatusCode::CONFLICT);
-    assert_eq!(blocked.body["error"], "revert_blocked");
+    assert_eq!(blocked.body["type"], "urn:memory:problem:revert_blocked");
     assert_eq!(blocked.body["blocked"][0]["path"], "a");
     assert_eq!(blocked.body["blocked"][0]["reason"], "changed_since");
     assert_eq!(

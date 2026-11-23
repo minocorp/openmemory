@@ -106,7 +106,10 @@ async fn creating_needs_if_none_match_and_a_free_path(pool: PgPool) -> TestResul
         )
         .await?;
     assert_eq!(missing.status, StatusCode::PRECONDITION_REQUIRED);
-    assert_eq!(missing.body["error"], "precondition_required");
+    assert_eq!(
+        missing.body["type"],
+        "urn:memory:problem:precondition_required"
+    );
 
     created_id(&admin, "a", "one\n").await?;
     let taken = create(&admin, "a", "two\n").await?;
@@ -135,7 +138,7 @@ async fn creating_over_a_file_path_conflicts_without_a_page_body(pool: PgPool) -
     assert_eq!(upload.status, StatusCode::CREATED);
     let reply = create(&admin, "contracts/acme.txt", "x\n").await?;
     assert_eq!(reply.status, StatusCode::CONFLICT);
-    assert_eq!(reply.body["error"], "path_taken");
+    assert_eq!(reply.body["type"], "urn:memory:problem:path_taken");
     Ok(())
 }
 
@@ -161,7 +164,7 @@ async fn overwriting_needs_the_current_version_in_if_match(pool: PgPool) -> Test
     )
     .await?;
     assert_eq!(wrong.status, StatusCode::PRECONDITION_FAILED);
-    assert_eq!(wrong.body["error"], "precondition_failed");
+    assert_eq!(wrong.body["type"], "urn:memory:problem:precondition_failed");
     assert_eq!(wrong.body["current"]["content"], PAGE);
     assert_eq!(etag(&wrong), "\"1\"");
 
@@ -290,7 +293,7 @@ async fn patching_replaces_text_and_appends_timeline_lines(pool: PgPool) -> Test
     )
     .await?;
     assert_eq!(bad_line.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert_eq!(bad_line.body["error"], "grammar");
+    assert_eq!(bad_line.body["type"], "urn:memory:problem:grammar");
     assert!(bad_line.body["line"].is_u64());
     Ok(())
 }
@@ -325,7 +328,7 @@ async fn appended_lines_take_an_event_date_that_is_not_in_the_future(pool: PgPoo
     )
     .await?;
     assert_eq!(future.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert_eq!(future.body["error"], "future_date");
+    assert_eq!(future.body["type"], "urn:memory:problem:future_date");
     assert!(future.body["today"].is_string());
 
     let invalid = with_match(
@@ -366,7 +369,7 @@ async fn a_quote_that_is_not_in_the_cited_file_page_is_rejected(pool: PgPool) ->
     )
     .await?;
     assert_eq!(wrong.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert_eq!(wrong.body["error"], "quote_unverified");
+    assert_eq!(wrong.body["type"], "urn:memory:problem:quote_unverified");
     assert_eq!(wrong.body["reason"], "not_in_text");
 
     let right = with_match(
@@ -396,7 +399,7 @@ async fn overwriting_cannot_rewrite_timeline_history(pool: PgPool) -> TestResult
     )
     .await?;
     assert_eq!(reply.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert_eq!(reply.body["error"], "timeline_changed");
+    assert_eq!(reply.body["type"], "urn:memory:problem:timeline_changed");
     Ok(())
 }
 
@@ -406,7 +409,7 @@ async fn secrets_are_rejected_with_the_pattern_name(pool: PgPool) -> TestResult 
     let (admin, _) = app.admin().await?;
     let reply = create(&admin, "a", "card 4111 1111 1111 1111\n").await?;
     assert_eq!(reply.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert_eq!(reply.body["error"], "credential");
+    assert_eq!(reply.body["type"], "urn:memory:problem:credential");
     assert_eq!(reply.body["pattern"], "card number");
     Ok(())
 }
@@ -492,7 +495,7 @@ async fn restoring_needs_a_fresh_if_match_and_a_different_state(pool: PgPool) ->
     )
     .await?;
     assert_eq!(unknown.status, StatusCode::NOT_FOUND);
-    assert_eq!(unknown.body["error"], "version_not_found");
+    assert_eq!(unknown.body["type"], "urn:memory:problem:version_not_found");
 
     let same = with_match(
         &admin,
@@ -503,7 +506,7 @@ async fn restoring_needs_a_fresh_if_match_and_a_different_state(pool: PgPool) ->
     )
     .await?;
     assert_eq!(same.status, StatusCode::CONFLICT);
-    assert_eq!(same.body["error"], "already_current");
+    assert_eq!(same.body["type"], "urn:memory:problem:already_current");
 
     let ok = with_match(
         &admin,
@@ -547,15 +550,15 @@ async fn versions_come_newest_first_with_diffs_and_a_cursor(pool: PgPool) -> Tes
     let diff = listed[0]["diff"].as_str().ok_or("no diff")?;
     assert!(diff.contains("-Vendor. 500,000 KRW."), "{diff}");
     assert!(diff.contains("+Supplier. 500,000 KRW."), "{diff}");
-    assert_eq!(first.body["next_before"], 2);
+    assert_eq!(first.body["next"], "2");
 
     let rest = admin
-        .get(&format!("{url}/versions?limit=2&before=2"))
+        .get(&format!("{url}/versions?limit=2&cursor=2"))
         .await?;
     let remaining = rest.body["versions"].as_array().ok_or("no versions")?;
     assert_eq!(remaining.len(), 1);
     assert_eq!(remaining[0]["op"], "create");
-    assert!(rest.body["next_before"].is_null());
+    assert!(rest.body["next"].is_null());
     Ok(())
 }
 

@@ -17,6 +17,7 @@ const MAX_LIMIT: u32 = 2000;
 pub(crate) struct Changes {
     pub(crate) groups: Vec<ChangeGroup>,
     pub(crate) last_seq: Seq,
+    pub(crate) next: Option<Seq>,
 }
 
 #[derive(Debug, Serialize)]
@@ -48,11 +49,14 @@ pub(crate) async fn list(
     let mut conn = pool.acquire().await?;
     let scope = ScopeFilter::of(&actor.scope);
     let limit = i64::from(limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT));
-    let rows = changes::list_since(&mut conn, since, &scope, actor.user_id, limit).await?;
+    let mut rows = changes::list_since(&mut conn, since, &scope, actor.user_id, limit + 1).await?;
+    let has_more = rows.len() > usize::try_from(limit).unwrap_or(usize::MAX);
+    rows.truncate(usize::try_from(limit).unwrap_or(usize::MAX));
     let last_seq = rows.last().map_or(since, |row| row.seq);
     Ok(Changes {
         groups: group_rows(rows),
         last_seq,
+        next: has_more.then_some(last_seq),
     })
 }
 

@@ -10,11 +10,11 @@ use crate::api::error::ApiError;
 use crate::auth::ceremony::{self, Assertion};
 use crate::auth::token::Secret;
 use crate::auth::{AuthError, WebSession};
-use crate::error::ErrorBody;
 use crate::files::FileId;
 use crate::pages::ids::PageId;
 use crate::pages::purge;
 use crate::state::AppState;
+use memory_api::Problem;
 
 #[derive(Debug, Serialize, ToSchema)]
 struct PurgeChallengeView {
@@ -71,8 +71,8 @@ async fn confirm(
     security(("session" = [])),
     responses(
         (status = 200, body = PurgeChallengeView),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn purge_challenge(
@@ -97,10 +97,10 @@ async fn purge_challenge(
     request_body = PurgeRequest,
     responses(
         (status = 204, description = "Every version of the page is gone; a tombstone without content remains"),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
-        (status = 404, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn purge_page(
@@ -123,9 +123,9 @@ async fn purge_page(
     request_body = PurgeRequest,
     responses(
         (status = 204, description = "The file row and its blob are gone; a tombstone without content remains"),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
-        (status = 404, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn purge_file(

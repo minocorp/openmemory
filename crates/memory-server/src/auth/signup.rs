@@ -12,8 +12,8 @@ use crate::auth::ceremony::{self, FinishedRegistration, Purpose};
 use crate::auth::queries::{invites, users};
 use crate::auth::token::Secret;
 use crate::auth::{AuthError, SameOrigin, recovery, session, violated_constraint};
-use crate::error::ErrorBody;
 use crate::state::AppState;
+use memory_api::Problem;
 
 const PASSKEY_NAME: &str = "passkey";
 
@@ -71,8 +71,8 @@ pub(super) fn router() -> Router<AppState> {
     request_body = SignupStart,
     responses(
         (status = 200, body = SignupStarted),
-        (status = 400, body = ErrorBody),
-        (status = 409, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 409, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn start_bootstrap(
@@ -103,8 +103,8 @@ async fn start_bootstrap(
     request_body = SignupStart,
     responses(
         (status = 200, body = SignupStarted),
-        (status = 400, body = ErrorBody),
-        (status = 409, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 409, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn start_invite(
@@ -176,8 +176,8 @@ async fn start(
     request_body = SignupFinish,
     responses(
         (status = 200, body = SignedUp, headers(("Set-Cookie" = String))),
-        (status = 400, body = ErrorBody),
-        (status = 409, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 409, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn finish_bootstrap(
@@ -195,8 +195,8 @@ async fn finish_bootstrap(
     request_body = SignupFinish,
     responses(
         (status = 200, body = SignedUp, headers(("Set-Cookie" = String))),
-        (status = 400, body = ErrorBody),
-        (status = 409, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 409, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn finish_register(

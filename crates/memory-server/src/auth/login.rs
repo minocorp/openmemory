@@ -15,8 +15,8 @@ use crate::auth::ceremony::{self, Assertion, Purpose};
 use crate::auth::queries::{passkeys as passkey_queries, users};
 use crate::auth::token::Secret;
 use crate::auth::{AuthError, SameOrigin, recovery, session};
-use crate::error::ErrorBody;
 use crate::state::AppState;
+use memory_api::Problem;
 
 const RECOVERED_PASSKEY_NAME: &str = "recovered passkey";
 
@@ -116,7 +116,7 @@ pub(super) fn router() -> Router<AppState> {
     path = "/api/auth/login/start",
     tag = "auth",
     request_body = LoginStart,
-    responses((status = 200, body = LoginStarted), (status = 403, body = ErrorBody))
+    responses((status = 200, body = LoginStarted), (status = 403, body = Problem, content_type = "application/problem+json"))
 )]
 async fn start_login(
     State(state): State<AppState>,
@@ -150,8 +150,8 @@ async fn start_login(
     request_body = LoginFinish,
     responses(
         (status = 200, body = LoggedIn, headers(("Set-Cookie" = String))),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn finish_login(
@@ -178,7 +178,7 @@ async fn finish_login(
     post,
     path = "/api/auth/login/discoverable/start",
     tag = "auth",
-    responses((status = 200, body = LoginStarted), (status = 403, body = ErrorBody))
+    responses((status = 200, body = LoginStarted), (status = 403, body = Problem, content_type = "application/problem+json"))
 )]
 async fn start_discoverable_login(
     State(state): State<AppState>,
@@ -198,8 +198,8 @@ async fn start_discoverable_login(
     request_body = LoginFinish,
     responses(
         (status = 200, body = LoggedIn, headers(("Set-Cookie" = String))),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn finish_discoverable_login(
@@ -226,7 +226,7 @@ async fn finish_discoverable_login(
     path = "/api/auth/recovery/start",
     tag = "auth",
     request_body = RecoveryStart,
-    responses((status = 200, body = RecoveryStarted), (status = 401, body = ErrorBody))
+    responses((status = 200, body = RecoveryStarted), (status = 401, body = Problem, content_type = "application/problem+json"))
 )]
 async fn start_recovery(
     State(state): State<AppState>,
@@ -274,7 +274,7 @@ async fn start_recovery(
     request_body = RecoveryFinish,
     responses(
         (status = 200, body = Recovered, headers(("Set-Cookie" = String))),
-        (status = 400, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn finish_recovery(

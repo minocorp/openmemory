@@ -11,7 +11,6 @@ use crate::access::{Folders, Name, connections};
 use crate::auth::ceremony::{self, Assertion};
 use crate::auth::token::Secret;
 use crate::auth::{AuthError, WebSession};
-use crate::error::ErrorBody;
 use crate::oauth::authorize::redirect_target;
 use crate::oauth::clients::{self, Client};
 use crate::oauth::device::UserCode;
@@ -20,6 +19,7 @@ use crate::oauth::queries::consents::{self, ConsentRow};
 use crate::oauth::queries::{codes, devices};
 use crate::oauth::redirect;
 use crate::state::AppState;
+use memory_api::Problem;
 
 const CODE_SECONDS: f64 = 60.0;
 const MIN_LABEL_CHARS: usize = 3;
@@ -95,8 +95,8 @@ pub(super) fn router() -> Router<AppState> {
     params(("reference" = String, Path, description = "Consent token or device user code")),
     responses(
         (status = 200, body = ConsentView),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn view(
@@ -168,8 +168,8 @@ fn alphanumeric(text: &str) -> String {
     params(("reference" = String, Path, description = "Consent token or device user code")),
     responses(
         (status = 200, body = ChallengeView),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn challenge(
@@ -197,10 +197,10 @@ async fn challenge(
     request_body = ApproveRequest,
     responses(
         (status = 200, body = Decision),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 409, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 409, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn approve(
@@ -279,8 +279,8 @@ async fn approve(
     params(("reference" = String, Path, description = "Consent token or device user code")),
     responses(
         (status = 200, body = Decision),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn deny(

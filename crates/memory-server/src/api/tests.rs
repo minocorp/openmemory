@@ -51,5 +51,5 @@ fn the_document_has_a_session_security_scheme_and_error_schema() {
         document["components"]["securitySchemes"]["session"]["in"],
         "cookie"
     );
-    assert!(document["components"]["schemas"]["ErrorBody"].is_object());
+    assert!(document["components"]["schemas"]["Problem"].is_object());
 }

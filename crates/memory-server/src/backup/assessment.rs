@@ -14,7 +14,7 @@ const RESTORE_TEST_GRACE: Duration = Duration::days(2);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum Problem {
+pub(crate) enum BackupProblem {
     StatusMissing,
     StatusStale,
     FullBackupStale,
@@ -34,7 +34,7 @@ struct RestoreTestReport {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct BackupReport {
-    problems: Vec<Problem>,
+    problems: Vec<BackupProblem>,
     last_full_age_seconds: Option<i64>,
     last_backup_age_seconds: Option<i64>,
     wal_archive_age_seconds: Option<i64>,
@@ -44,7 +44,7 @@ pub(crate) struct BackupReport {
 }
 
 impl BackupReport {
-    pub(crate) fn problems(&self) -> &[Problem] {
+    pub(crate) fn problems(&self) -> &[BackupProblem] {
         &self.problems
     }
 
@@ -54,7 +54,7 @@ impl BackupReport {
 
     pub(super) fn without_status(wal_age: Option<Duration>) -> Self {
         Self {
-            problems: vec![Problem::StatusMissing],
+            problems: vec![BackupProblem::StatusMissing],
             last_full_age_seconds: None,
             last_backup_age_seconds: None,
             wal_archive_age_seconds: wal_age.map(Duration::whole_seconds),
@@ -79,19 +79,19 @@ pub(super) fn assess(
         .then(|| age(file.blobs.last_snapshot_at));
     let mut problems = Vec::new();
     if now - file.updated_at > STATUS_MAX_AGE {
-        problems.push(Problem::StatusStale);
+        problems.push(BackupProblem::StatusStale);
     }
     if is_stale(full, FULL_MAX_AGE) {
-        problems.push(Problem::FullBackupStale);
+        problems.push(BackupProblem::FullBackupStale);
     }
     if is_stale(backup, BACKUP_MAX_AGE) {
-        problems.push(Problem::BackupStale);
+        problems.push(BackupProblem::BackupStale);
     }
     if is_stale(wal_age, WAL_MAX_AGE) {
-        problems.push(Problem::WalArchiveStale);
+        problems.push(BackupProblem::WalArchiveStale);
     }
     if blobs.is_some_and(|blobs| is_stale(blobs, BLOBS_MAX_AGE)) {
-        problems.push(Problem::BlobBackupStale);
+        problems.push(BackupProblem::BlobBackupStale);
     }
     problems.extend(restore_test_problem(file, full, now));
     BackupReport {
@@ -115,14 +115,14 @@ fn restore_test_problem(
     file: &StatusFile,
     full_age: Option<Duration>,
     now: OffsetDateTime,
-) -> Option<Problem> {
+) -> Option<BackupProblem> {
     match file.restore_test {
-        Some(test) if !test.ok => Some(Problem::RestoreTestFailed),
-        Some(test) if now - test.at > RESTORE_TEST_MAX_AGE => Some(Problem::RestoreTestStale),
+        Some(test) if !test.ok => Some(BackupProblem::RestoreTestFailed),
+        Some(test) if now - test.at > RESTORE_TEST_MAX_AGE => Some(BackupProblem::RestoreTestStale),
         Some(_) => None,
         None => full_age
             .filter(|age| *age > RESTORE_TEST_GRACE)
-            .map(|_| Problem::RestoreTestStale),
+            .map(|_| BackupProblem::RestoreTestStale),
     }
 }
 

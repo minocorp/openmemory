@@ -3,59 +3,22 @@ use std::collections::HashMap;
 use axum::extract::{RawQuery, State};
 use axum::routing::get;
 use axum::{Json, Router};
+use memory_api::{FileHit, NoHits as ApiNoHits, PageHit, Problem, SearchResults};
 use memory_ops::{HitKind, NoHits, SearchHit, SearchInput};
-use serde::Serialize;
-use utoipa::{OpenApi, ToSchema};
+use utoipa::OpenApi;
 
 use crate::api::error::ApiError;
 use crate::auth::WebSession;
-use crate::error::ErrorBody;
 use crate::files::FileId;
 use crate::pages::ids::PageId;
 use crate::pages::listing;
 use crate::search::{self, Match};
 use crate::state::AppState;
 
-#[derive(Debug, Serialize, ToSchema)]
-struct SearchView {
-    pages: Vec<PageHitView>,
-    files: Vec<FileHitView>,
-    next_cursor: Option<i64>,
-    no_hits: Option<NoHitsView>,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-struct PageHitView {
-    page_id: PageId,
-    path: String,
-    line_number: Option<u32>,
-    line: Option<String>,
-    author: String,
-    at: String,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-struct FileHitView {
-    file_id: FileId,
-    path: String,
-    page: Option<u32>,
-    line_number: Option<u32>,
-    line: Option<String>,
-    author: String,
-    at: String,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-struct NoHitsView {
-    query: String,
-    fields_in_scope: Vec<String>,
-    folders_out_of_scope: u32,
-}
-
 #[derive(OpenApi)]
 #[openapi(
     paths(search),
-    components(schemas(SearchView, PageHitView, FileHitView, NoHitsView))
+    components(schemas(SearchResults, PageHit, FileHit, ApiNoHits))
 )]
 pub(super) struct Doc;
 
@@ -63,13 +26,11 @@ pub(super) fn router() -> Router<AppState> {
     Router::new().route("/api/search", get(search))
 }
 
-impl From<NoHits> for NoHitsView {
-    fn from(no_hits: NoHits) -> Self {
-        Self {
-            query: no_hits.query,
-            fields_in_scope: no_hits.fields_in_scope,
-            folders_out_of_scope: no_hits.folders_out_of_scope,
-        }
+fn no_hits_view(no_hits: NoHits) -> ApiNoHits {
+    ApiNoHits {
+        query: no_hits.query,
+        fields_in_scope: no_hits.fields_in_scope,
+        folders_out_of_scope: no_hits.folders_out_of_scope,
     }
 }
 
@@ -106,19 +67,19 @@ fn parse_params(raw: &str) -> Result<SearchInput, ApiError> {
         ("where" = Option<Vec<String>>, Query, style = Form, explode = true, description = "Field conditions, ANDed; repeat the parameter"),
         ("folder" = Option<String>, Query),
         ("limit" = Option<u32>, Query),
-        ("cursor" = Option<i64>, Query),
+        ("cursor" = Option<String>, Query, description = "The `next` value of the previous page"),
     ),
     responses(
-        (status = 200, body = SearchView),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
+        (status = 200, body = SearchResults),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn search(
     State(state): State<AppState>,
     session: WebSession,
     RawQuery(raw): RawQuery,
-) -> Result<Json<SearchView>, ApiError> {
+) -> Result<Json<SearchResults>, ApiError> {
     let input = parse_params(raw.as_deref().unwrap_or_default())?;
     let output = search::search(
         state.pool(),
@@ -143,7 +104,7 @@ async fn search(
         .await?
         .into_iter()
         .collect();
-    Ok(Json(SearchView {
+    Ok(Json(SearchResults {
         pages: page_hits
             .into_iter()
             .filter_map(|hit| page_hit(&page_ids, hit))
@@ -152,8 +113,8 @@ async fn search(
             .into_iter()
             .filter_map(|hit| file_hit(&file_ids, hit))
             .collect(),
-        next_cursor: output.next_cursor,
-        no_hits: output.no_hits.map(NoHitsView::from),
+        next: output.next_cursor.map(|cursor| cursor.to_string()),
+        no_hits: output.no_hits.map(no_hits_view),
     }))
 }
 
@@ -161,9 +122,9 @@ fn paths_of(hits: &[SearchHit]) -> Vec<String> {
     hits.iter().map(|hit| hit.path.clone()).collect()
 }
 
-fn page_hit(ids: &HashMap<String, PageId>, hit: SearchHit) -> Option<PageHitView> {
-    Some(PageHitView {
-        page_id: *ids.get(&hit.path)?,
+fn page_hit(ids: &HashMap<String, PageId>, hit: SearchHit) -> Option<PageHit> {
+    Some(PageHit {
+        page_id: ids.get(&hit.path)?.0,
         path: hit.path,
         line_number: hit.line_number,
         line: hit.line,
@@ -172,9 +133,9 @@ fn page_hit(ids: &HashMap<String, PageId>, hit: SearchHit) -> Option<PageHitView
     })
 }
 
-fn file_hit(ids: &HashMap<String, FileId>, hit: SearchHit) -> Option<FileHitView> {
-    Some(FileHitView {
-        file_id: *ids.get(&hit.path)?,
+fn file_hit(ids: &HashMap<String, FileId>, hit: SearchHit) -> Option<FileHit> {
+    Some(FileHit {
+        file_id: ids.get(&hit.path)?.0,
         path: hit.path,
         page: hit.page,
         line_number: hit.line_number,

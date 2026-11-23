@@ -12,8 +12,8 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::access::{Actor, ConnectionId, Folders, Name, UserId};
 use crate::auth::{AuthError, WebSession, violated_constraint};
-use crate::error::ErrorBody;
 use crate::state::AppState;
+use memory_api::Problem;
 use queries::ConnectionRow;
 
 const NAME_KEY: &str = "connections_user_id_name_live_key";
@@ -220,7 +220,7 @@ async fn manageable(
     path = "/api/connections",
     tag = "connections",
     security(("session" = [])),
-    responses((status = 200, body = Vec<ConnectionView>), (status = 401, body = ErrorBody))
+    responses((status = 200, body = Vec<ConnectionView>), (status = 401, body = Problem, content_type = "application/problem+json"))
 )]
 async fn list_connections(
     State(state): State<AppState>,
@@ -241,10 +241,10 @@ async fn list_connections(
     request_body = ConnectionUpdate,
     responses(
         (status = 200, body = ConnectionView),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 409, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 409, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn update_connection(
@@ -282,7 +282,7 @@ async fn update_connection(
     tag = "connections",
     security(("session" = [])),
     params(("id" = i64, Path)),
-    responses((status = 204), (status = 401, body = ErrorBody), (status = 404, body = ErrorBody))
+    responses((status = 204), (status = 401, body = Problem, content_type = "application/problem+json"), (status = 404, body = Problem, content_type = "application/problem+json"))
 )]
 async fn revoke_connection(
     State(state): State<AppState>,

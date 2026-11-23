@@ -16,8 +16,8 @@ use crate::auth::queries::{passkeys, users};
 use crate::auth::token::Secret;
 use crate::auth::users::profile_conflict;
 use crate::auth::{AuthError, WebSession, session};
-use crate::error::ErrorBody;
 use crate::state::AppState;
+use memory_api::Problem;
 
 #[derive(Debug, Serialize, ToSchema)]
 struct Me {
@@ -100,7 +100,7 @@ pub(super) fn router() -> Router<AppState> {
     path = "/api/auth/me",
     tag = "auth",
     security(("session" = [])),
-    responses((status = 200, body = Me), (status = 401, body = ErrorBody))
+    responses((status = 200, body = Me), (status = 401, body = Problem, content_type = "application/problem+json"))
 )]
 async fn me(session: WebSession) -> Json<Me> {
     Json(Me {
@@ -119,9 +119,9 @@ async fn me(session: WebSession) -> Json<Me> {
     request_body = MeUpdate,
     responses(
         (status = 200, body = Me),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 409, description = "The username is taken", body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 409, description = "The username is taken", body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn update_me(
@@ -155,7 +155,7 @@ async fn update_me(
     path = "/api/auth/logout",
     tag = "auth",
     security(("session" = [])),
-    responses((status = 204), (status = 401, body = ErrorBody))
+    responses((status = 204), (status = 401, body = Problem, content_type = "application/problem+json"))
 )]
 async fn logout(
     State(state): State<AppState>,
@@ -174,7 +174,7 @@ async fn logout(
     path = "/api/auth/passkeys",
     tag = "auth",
     security(("session" = [])),
-    responses((status = 200, body = Vec<PasskeyView>), (status = 401, body = ErrorBody))
+    responses((status = 200, body = Vec<PasskeyView>), (status = 401, body = Problem, content_type = "application/problem+json"))
 )]
 async fn list_passkeys(
     State(state): State<AppState>,
@@ -200,7 +200,7 @@ async fn list_passkeys(
     tag = "auth",
     security(("session" = [])),
     request_body = AddPasskeyStart,
-    responses((status = 200, body = AddPasskeyStarted), (status = 401, body = ErrorBody))
+    responses((status = 200, body = AddPasskeyStarted), (status = 401, body = Problem, content_type = "application/problem+json"))
 )]
 async fn start_add_passkey(
     State(state): State<AppState>,
@@ -245,9 +245,9 @@ async fn start_add_passkey(
     request_body = AddPasskeyFinish,
     responses(
         (status = 201),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 409, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 409, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn finish_add_passkey(
@@ -288,9 +288,9 @@ async fn finish_add_passkey(
     request_body = Confirmed,
     responses(
         (status = 204),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 409, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 409, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn delete_passkey(

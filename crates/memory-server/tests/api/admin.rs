@@ -89,7 +89,7 @@ async fn the_last_admin_cannot_be_demoted(pool: PgPool) -> TestResult {
         .ok_or("no id")?;
     let blocked = admin.set_admin(me, false).await?;
     assert_eq!(blocked.status, StatusCode::CONFLICT);
-    assert_eq!(blocked.body["error"], "last_admin");
+    assert_eq!(blocked.body["type"], "urn:memory:problem:last_admin");
 
     let member = app.member(&admin, "member").await?;
     let member_id = member.get("/api/auth/me").await?.body["id"]

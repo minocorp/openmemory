@@ -137,12 +137,12 @@ async fn search_explains_empty_results_and_pages_through_hits(pool: PgPool) -> T
     }
     let first = admin.get("/api/search?q=alpha&limit=2").await?;
     assert_eq!(first.body["pages"].as_array().map(Vec::len), Some(2));
-    let cursor = first.body["next_cursor"].as_i64().ok_or("no cursor")?;
+    let cursor = first.body["next"].as_str().ok_or("no cursor")?;
     let second = admin
         .get(&format!("/api/search?q=alpha&limit=2&cursor={cursor}"))
         .await?;
     assert_eq!(second.body["pages"].as_array().map(Vec::len), Some(1));
-    assert!(second.body["next_cursor"].is_null());
+    assert!(second.body["next"].is_null());
 
     let none = admin.get("/api/search?q=zzz").await?;
     assert!(none.body["pages"].as_array().is_some_and(Vec::is_empty));
@@ -156,7 +156,7 @@ async fn search_rejects_bad_input_and_anonymous_callers(pool: PgPool) -> TestRes
     let (admin, _) = app.admin().await?;
     let bad_where = admin.get("/api/search?where=%3D%3D").await?;
     assert_eq!(bad_where.status, StatusCode::BAD_REQUEST);
-    assert_eq!(bad_where.body["error"], "invalid_where");
+    assert_eq!(bad_where.body["type"], "urn:memory:problem:invalid_where");
     assert_eq!(
         admin.get("/api/search?folder=a//b").await?.status,
         StatusCode::BAD_REQUEST

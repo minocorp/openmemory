@@ -24,6 +24,8 @@ async fn the_openapi_document_is_public_and_lists_every_route_group(pool: PgPool
         "/api/files",
         "/api/files/{id}",
         "/api/files/{id}/content",
+        "/api/files/{id}/text",
+        "/api/folder",
         "/api/files/{id}/purge",
         "/api/upload-links/{token}",
         "/api/tree",

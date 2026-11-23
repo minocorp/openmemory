@@ -8,8 +8,8 @@ use webauthn_rs::prelude::{PublicKeyCredential, RequestChallengeResponse};
 use crate::auth::ceremony::{self, Assertion};
 use crate::auth::token::Secret;
 use crate::auth::{AuthError, WebSession};
-use crate::error::ErrorBody;
 use crate::state::AppState;
+use memory_api::Problem;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
@@ -90,7 +90,7 @@ impl Confirmation {
     tag = "auth",
     security(("session" = [])),
     request_body = ConfirmationStart,
-    responses((status = 200, body = ConfirmationChallenge), (status = 401, body = ErrorBody))
+    responses((status = 200, body = ConfirmationChallenge), (status = 401, body = Problem, content_type = "application/problem+json"))
 )]
 async fn start_confirmation(
     State(state): State<AppState>,

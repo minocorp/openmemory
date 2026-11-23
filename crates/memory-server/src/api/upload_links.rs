@@ -10,9 +10,9 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::api::error::ApiError;
 use crate::api::files::{content_type, created, read_body};
-use crate::error::ErrorBody;
 use crate::files::FilesError;
 use crate::state::AppState;
+use memory_api::Problem;
 
 #[derive(Debug, Serialize, ToSchema)]
 struct UploadLinkView {
@@ -42,7 +42,7 @@ pub(super) fn router() -> Router<AppState> {
     params(("token" = String, Path)),
     responses(
         (status = 200, body = UploadLinkView),
-        (status = 404, description = "The link is unknown, expired or used", body = ErrorBody),
+        (status = 404, description = "The link is unknown, expired or used", body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn get_upload_link(
@@ -66,14 +66,14 @@ async fn get_upload_link(
     ),
     request_body(content_type = "application/octet-stream", description = "The raw file bytes. The token authorizes the request, so no session is needed."),
     responses(
-        (status = 201, body = crate::api::files::FileView),
-        (status = 400, body = ErrorBody),
-        (status = 404, description = "The link is unknown, expired or used", body = ErrorBody),
-        (status = 409, body = ErrorBody),
-        (status = 413, body = ErrorBody),
-        (status = 503, description = "Too many uploads are in flight", body = ErrorBody),
-        (status = 415, body = ErrorBody),
-        (status = 422, body = ErrorBody),
+        (status = 201, body = memory_api::FileView),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 404, description = "The link is unknown, expired or used", body = Problem, content_type = "application/problem+json"),
+        (status = 409, body = Problem, content_type = "application/problem+json"),
+        (status = 413, body = Problem, content_type = "application/problem+json"),
+        (status = 503, description = "Too many uploads are in flight", body = Problem, content_type = "application/problem+json"),
+        (status = 415, body = Problem, content_type = "application/problem+json"),
+        (status = 422, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn redeem_upload_link(

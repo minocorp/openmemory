@@ -11,8 +11,8 @@ use crate::auth::ids::InviteId;
 use crate::auth::queries::invites::{self, InviteRow};
 use crate::auth::token::Secret;
 use crate::auth::{AuthError, WebSession};
-use crate::error::ErrorBody;
 use crate::state::AppState;
+use memory_api::Problem;
 
 const INVITE_SECONDS: f64 = 7.0 * 24.0 * 3600.0;
 
@@ -66,8 +66,8 @@ pub(super) fn router() -> Router<AppState> {
     request_body = Confirmed,
     responses(
         (status = 201, body = CreatedInvite),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn create_invite(
@@ -99,8 +99,8 @@ async fn create_invite(
     security(("session" = [])),
     responses(
         (status = 200, body = Vec<InviteView>),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn list_invites(
@@ -121,9 +121,9 @@ async fn list_invites(
     params(("id" = i64, Path)),
     responses(
         (status = 204),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
-        (status = 404, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn delete_invite(

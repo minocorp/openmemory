@@ -9,8 +9,8 @@ use crate::access::{DisplayName, UserId, Username};
 use crate::auth::confirmation::{Action, Confirmation};
 use crate::auth::queries::users::{self, UserSummary};
 use crate::auth::{AuthError, WebSession, violated_constraint};
-use crate::error::ErrorBody;
 use crate::state::AppState;
+use memory_api::Problem;
 
 #[derive(Debug, Serialize, ToSchema)]
 struct UserView {
@@ -75,8 +75,8 @@ pub(super) fn router() -> Router<AppState> {
     security(("session" = [])),
     responses(
         (status = 200, body = Vec<UserView>),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn list_users(
@@ -98,10 +98,10 @@ async fn list_users(
     request_body = UserUpdate,
     responses(
         (status = 200, body = UserView),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 409, description = "The user is the last admin", body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 409, description = "The user is the last admin", body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn update_user(
@@ -136,11 +136,11 @@ async fn update_user(
     request_body = ProfileUpdate,
     responses(
         (status = 200, body = UserView),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 409, description = "The username is taken", body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 409, description = "The username is taken", body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn update_profile(

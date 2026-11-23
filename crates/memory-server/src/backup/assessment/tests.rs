@@ -23,7 +23,7 @@ fn healthy() -> StatusFile {
     }
 }
 
-fn problems(file: &StatusFile, wal_age: Option<Duration>) -> Vec<Problem> {
+fn problems(file: &StatusFile, wal_age: Option<Duration>) -> Vec<BackupProblem> {
     assess(file, wal_age, NOW).problems
 }
 
@@ -39,7 +39,7 @@ fn recent_backups_archive_and_restore_test_are_healthy() {
 fn an_old_full_backup_is_reported() {
     let mut file = healthy();
     file.last_full_at = Some(NOW - Duration::days(9));
-    assert_eq!(problems(&file, FRESH_WAL), [Problem::FullBackupStale]);
+    assert_eq!(problems(&file, FRESH_WAL), [BackupProblem::FullBackupStale]);
 }
 
 #[test]
@@ -49,7 +49,7 @@ fn a_missing_backup_is_stale() {
     file.last_backup_at = None;
     assert_eq!(
         problems(&file, FRESH_WAL),
-        [Problem::FullBackupStale, Problem::BackupStale]
+        [BackupProblem::FullBackupStale, BackupProblem::BackupStale]
     );
 }
 
@@ -58,25 +58,25 @@ fn an_old_or_unknown_wal_archive_is_reported() {
     let file = healthy();
     assert_eq!(
         problems(&file, Some(Duration::minutes(20))),
-        [Problem::WalArchiveStale]
+        [BackupProblem::WalArchiveStale]
     );
-    assert_eq!(problems(&file, None), [Problem::WalArchiveStale]);
+    assert_eq!(problems(&file, None), [BackupProblem::WalArchiveStale]);
 }
 
 #[test]
 fn a_status_file_that_stopped_updating_is_reported() {
     let mut file = healthy();
     file.updated_at = NOW - Duration::minutes(30);
-    assert_eq!(problems(&file, FRESH_WAL), [Problem::StatusStale]);
+    assert_eq!(problems(&file, FRESH_WAL), [BackupProblem::StatusStale]);
 }
 
 #[test]
 fn blob_backup_age_counts_only_when_blobs_are_in_the_backup() {
     let mut file = healthy();
     file.blobs.last_snapshot_at = Some(NOW - Duration::hours(4));
-    assert_eq!(problems(&file, FRESH_WAL), [Problem::BlobBackupStale]);
+    assert_eq!(problems(&file, FRESH_WAL), [BackupProblem::BlobBackupStale]);
     file.blobs.in_backup = false;
-    assert_eq!(problems(&file, FRESH_WAL), Vec::<Problem>::new());
+    assert_eq!(problems(&file, FRESH_WAL), Vec::<BackupProblem>::new());
 }
 
 #[test]
@@ -86,7 +86,10 @@ fn a_failed_restore_test_is_reported() {
         at: NOW - Duration::hours(1),
         ok: false,
     });
-    assert_eq!(problems(&file, FRESH_WAL), [Problem::RestoreTestFailed]);
+    assert_eq!(
+        problems(&file, FRESH_WAL),
+        [BackupProblem::RestoreTestFailed]
+    );
 }
 
 #[test]
@@ -94,9 +97,12 @@ fn a_missing_restore_test_is_pending_until_the_grace_period_ends() {
     let mut file = healthy();
     file.restore_test = None;
     file.last_full_at = Some(NOW - Duration::hours(3));
-    assert_eq!(problems(&file, FRESH_WAL), Vec::<Problem>::new());
+    assert_eq!(problems(&file, FRESH_WAL), Vec::<BackupProblem>::new());
     file.last_full_at = Some(NOW - Duration::days(3));
-    assert_eq!(problems(&file, FRESH_WAL), [Problem::RestoreTestStale]);
+    assert_eq!(
+        problems(&file, FRESH_WAL),
+        [BackupProblem::RestoreTestStale]
+    );
 }
 
 #[test]
@@ -106,5 +112,8 @@ fn an_old_restore_test_is_reported() {
         at: NOW - Duration::days(16),
         ok: true,
     });
-    assert_eq!(problems(&file, FRESH_WAL), [Problem::RestoreTestStale]);
+    assert_eq!(
+        problems(&file, FRESH_WAL),
+        [BackupProblem::RestoreTestStale]
+    );
 }

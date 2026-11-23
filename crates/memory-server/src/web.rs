@@ -1,15 +1,15 @@
 use std::borrow::Cow;
 
-use axum::Json;
 use axum::body::Body;
 use axum::http::header::{
     CACHE_CONTROL, CONTENT_TYPE, ETAG, IF_NONE_MATCH, X_CONTENT_TYPE_OPTIONS,
 };
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
+use memory_api::Problem;
 use rust_embed::RustEmbed;
-use serde_json::json;
 
+use crate::problem::respond as respond_problem;
 use crate::storage::Sha256Hash;
 
 const INDEX: &str = "index.html";
@@ -111,7 +111,7 @@ fn content_type(mime: &str) -> String {
 }
 
 fn not_found() -> Response {
-    (StatusCode::NOT_FOUND, Json(json!({ "error": "not_found" }))).into_response()
+    respond_problem(Problem::new("not_found", 404))
 }
 
 #[cfg(test)]

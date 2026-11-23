@@ -4,6 +4,7 @@ mod auth;
 mod browse;
 mod changes;
 mod connections;
+mod contract;
 mod files;
 mod mcp;
 mod oauth;

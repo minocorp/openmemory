@@ -8,15 +8,16 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use axum::Json;
 use axum::extract::{ConnectInfo, Request, State};
+use axum::http::HeaderValue;
 use axum::http::header::RETRY_AFTER;
-use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::Next;
-use axum::response::{IntoResponse, Response};
+use axum::response::Response;
 use governor::clock::{Clock, DefaultClock};
 use governor::{DefaultKeyedRateLimiter, Quota};
-use serde_json::json;
+use memory_api::Problem;
+
+use crate::problem::respond;
 
 pub(crate) use trusted_proxy::TrustedProxy;
 
@@ -140,11 +141,7 @@ pub(crate) async fn enforce(
 
 fn too_many_requests(wait: Duration) -> Response {
     let seconds = wait.as_secs().saturating_add(1);
-    let mut response = (
-        StatusCode::TOO_MANY_REQUESTS,
-        Json(json!({ "error": "rate_limited" })),
-    )
-        .into_response();
+    let mut response = respond(Problem::new("rate_limited", 429));
     if let Ok(value) = HeaderValue::from_str(&seconds.to_string()) {
         response.headers_mut().insert(RETRY_AFTER, value);
     }

@@ -1,8 +1,9 @@
-use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use serde_json::json;
+use memory_api::Problem;
 use webauthn_rs::prelude::WebauthnError;
+
+use crate::problem::respond;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum AuthError {
@@ -100,11 +101,11 @@ impl IntoResponse for AuthError {
             | Self::OriginMismatch
             | Self::UnsupportedMediaType => {}
         }
-        let body = match &self {
-            Self::InvalidInput(field) => json!({ "error": self.code(), "field": field }),
-            _ => json!({ "error": self.code() }),
-        };
-        (status, Json(body)).into_response()
+        let problem = Problem::new(self.code(), status.as_u16());
+        respond(match &self {
+            Self::InvalidInput(field) => problem.with("field", *field),
+            _ => problem,
+        })
     }
 }
 

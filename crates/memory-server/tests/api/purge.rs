@@ -221,7 +221,7 @@ async fn purging_rejects_the_start_page_and_unknown_ids(pool: PgPool) -> TestRes
     let start = created_id(&admin, "start", "Rules.\n").await?;
     let reserved = purge(&mut admin, &format!("/api/pages/{start}/purge")).await?;
     assert_eq!(reserved.status, StatusCode::BAD_REQUEST);
-    assert_eq!(reserved.body["error"], "reserved_path");
+    assert_eq!(reserved.body["type"], "urn:memory:problem:reserved_path");
     assert_eq!(
         admin.get(&format!("/api/pages/{start}")).await?.status,
         StatusCode::OK

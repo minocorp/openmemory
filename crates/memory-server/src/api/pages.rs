@@ -4,149 +4,26 @@ use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use memory_api::{
+    AppendBody, FieldView, FileSourceView, Moved, Operation, PageCreate, PageEdit, PageMove,
+    PageOverwrite, PageView, Problem, ReplaceBody, Restored, TimelineView, VersionList,
+    VersionView, Written,
+};
 use memory_ops::{
     Append, FieldRead, FileSourceRead, PagePath, PageRead, Replacement, TimelineRead, VersionEntry,
     VersionOp, WriteAction, WriteOutput, parse_iso_date,
 };
 use serde::{Deserialize, Serialize};
-use utoipa::{OpenApi, ToSchema};
+use utoipa::OpenApi;
 
 use crate::api::error::ApiError;
 use crate::api::precondition::{etag, if_match, matches_none_match, requires_absent};
 use crate::auth::WebSession;
-use crate::error::ErrorBody;
 use crate::pages::error::PagesError;
 use crate::pages::ids::{PageId, VersionNumber};
 use crate::pages::write::Revision;
 use crate::pages::{delete, history, locate, read, relocate, revert, write};
 use crate::state::AppState;
-
-#[derive(Debug, Clone, Serialize, ToSchema)]
-pub(crate) struct PageView {
-    id: PageId,
-    path: String,
-    version: i32,
-    author: String,
-    updated_at: String,
-    fields: Vec<FieldView>,
-    body: String,
-    timeline: Vec<TimelineView>,
-    content: String,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub(super) struct PreconditionFailedBody {
-    error: String,
-    current: Option<PageView>,
-}
-
-#[derive(Debug, Clone, Serialize, ToSchema)]
-struct FieldView {
-    key: String,
-    values: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, ToSchema)]
-struct TimelineView {
-    date: String,
-    source: String,
-    file: Option<FileSourceView>,
-    text: String,
-}
-
-#[derive(Debug, Clone, Serialize, ToSchema)]
-struct FileSourceView {
-    path: String,
-    page: Option<u32>,
-    quote: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
-#[serde(rename_all = "snake_case")]
-pub(super) enum OperationView {
-    Create,
-    Edit,
-    Move,
-    Relink,
-    Delete,
-    Revert,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-struct VersionView {
-    version: i32,
-    path: String,
-    op: OperationView,
-    author: String,
-    at: String,
-    group: i64,
-    reverts_version: Option<i32>,
-    diff: String,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-struct VersionListView {
-    versions: Vec<VersionView>,
-    next_before: Option<i32>,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub(super) struct WrittenView {
-    pub(super) path: String,
-    pub(super) version: i32,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-struct MovedView {
-    id: PageId,
-    path: String,
-    version: i32,
-    rewritten: Vec<WrittenView>,
-    rewritten_out_of_scope: u32,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-struct RestoredView {
-    reverted: Vec<WrittenView>,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-struct PageCreate {
-    content: String,
-    task: Option<String>,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-struct PageOverwrite {
-    content: String,
-    task: Option<String>,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-struct ReplaceBody {
-    old: String,
-    new: String,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-struct AppendBody {
-    text: String,
-    source: Option<String>,
-    date: Option<String>,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-struct PageEdit {
-    replace: Option<ReplaceBody>,
-    append: Option<AppendBody>,
-    task: Option<String>,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-struct PageMove {
-    to: String,
-    task: Option<String>,
-}
 
 #[derive(Debug, Deserialize)]
 struct PathQuery {
@@ -161,7 +38,7 @@ struct VersionQuery {
 #[derive(Debug, Deserialize)]
 struct VersionsQuery {
     limit: Option<u32>,
-    before: Option<i32>,
+    cursor: Option<String>,
 }
 
 #[derive(OpenApi)]
@@ -179,16 +56,15 @@ struct VersionsQuery {
     ),
     components(schemas(
         PageView,
-        PreconditionFailedBody,
         FieldView,
         TimelineView,
         FileSourceView,
-        OperationView,
+        Operation,
         VersionView,
-        VersionListView,
-        WrittenView,
-        MovedView,
-        RestoredView,
+        VersionList,
+        Written,
+        Moved,
+        Restored,
         PageCreate,
         PageOverwrite,
         ReplaceBody,
@@ -217,86 +93,72 @@ pub(super) fn router() -> Router<AppState> {
         .route("/api/pages/{id}/move", post(move_page))
 }
 
-impl PageView {
-    pub(crate) fn new(id: PageId, page: PageRead) -> Self {
-        Self {
-            id,
-            path: page.path,
-            version: page.version,
-            author: page.author,
-            updated_at: page.updated_at,
-            fields: page.fields.into_iter().map(FieldView::from).collect(),
-            body: page.body,
-            timeline: page.timeline.into_iter().map(TimelineView::from).collect(),
-            content: page.content,
-        }
+pub(super) fn page_view(id: PageId, page: PageRead) -> PageView {
+    PageView {
+        id: id.0,
+        path: page.path,
+        version: page.version,
+        author: page.author,
+        updated_at: page.updated_at,
+        fields: page.fields.into_iter().map(field_view).collect(),
+        body: page.body,
+        timeline: page.timeline.into_iter().map(timeline_view).collect(),
+        content: page.content,
     }
 }
 
-impl From<FieldRead> for FieldView {
-    fn from(field: FieldRead) -> Self {
-        Self {
-            key: field.key,
-            values: field.values,
-        }
+fn field_view(field: FieldRead) -> FieldView {
+    FieldView {
+        key: field.key,
+        values: field.values,
     }
 }
 
-impl From<TimelineRead> for TimelineView {
-    fn from(entry: TimelineRead) -> Self {
-        Self {
-            date: entry.date,
-            source: entry.source,
-            file: entry.file.map(FileSourceView::from),
-            text: entry.text,
-        }
+fn timeline_view(entry: TimelineRead) -> TimelineView {
+    TimelineView {
+        date: entry.date,
+        source: entry.source,
+        file: entry.file.map(file_source_view),
+        text: entry.text,
     }
 }
 
-impl From<FileSourceRead> for FileSourceView {
-    fn from(source: FileSourceRead) -> Self {
-        Self {
-            path: source.path,
-            page: source.page,
-            quote: source.quote,
-        }
+fn file_source_view(source: FileSourceRead) -> FileSourceView {
+    FileSourceView {
+        path: source.path,
+        page: source.page,
+        quote: source.quote,
     }
 }
 
-impl From<VersionOp> for OperationView {
-    fn from(op: VersionOp) -> Self {
-        match op {
-            VersionOp::Create => Self::Create,
-            VersionOp::Edit => Self::Edit,
-            VersionOp::Move => Self::Move,
-            VersionOp::Relink => Self::Relink,
-            VersionOp::Delete => Self::Delete,
-            VersionOp::Revert => Self::Revert,
-        }
+pub(super) fn operation(op: VersionOp) -> Operation {
+    match op {
+        VersionOp::Create => Operation::Create,
+        VersionOp::Edit => Operation::Edit,
+        VersionOp::Move => Operation::Move,
+        VersionOp::Relink => Operation::Relink,
+        VersionOp::Delete => Operation::Delete,
+        VersionOp::Revert => Operation::Revert,
     }
 }
 
-impl From<VersionEntry> for VersionView {
-    fn from(entry: VersionEntry) -> Self {
-        Self {
-            version: entry.version,
-            path: entry.path,
-            op: entry.op.into(),
-            author: entry.author,
-            at: entry.at,
-            group: entry.group,
-            reverts_version: entry.reverts_version,
-            diff: entry.diff,
-        }
+fn version_view(entry: VersionEntry) -> VersionView {
+    VersionView {
+        version: entry.version,
+        path: entry.path,
+        op: operation(entry.op),
+        author: entry.author,
+        at: entry.at,
+        group: entry.group,
+        reverts_version: entry.reverts_version,
+        diff: entry.diff,
     }
 }
 
-impl From<WriteOutput> for WrittenView {
-    fn from(written: WriteOutput) -> Self {
-        Self {
-            path: written.path,
-            version: written.version,
-        }
+pub(super) fn written(output: WriteOutput) -> Written {
+    Written {
+        path: output.path,
+        version: output.version,
     }
 }
 
@@ -312,7 +174,7 @@ async fn current_view(state: &AppState, session: &WebSession, id: PageId) -> Opt
     read::read_by_id(state.pool(), &session.actor, id, None)
         .await
         .ok()
-        .map(|page| Box::new(PageView::new(id, page)))
+        .map(|page| Box::new(page_view(id, page)))
 }
 
 async fn refine(state: &AppState, session: &WebSession, id: PageId, error: PagesError) -> ApiError {
@@ -333,9 +195,9 @@ async fn refine(state: &AppState, session: &WebSession, id: PageId, error: Pages
     params(("path" = String, Query)),
     responses(
         (status = 200, body = PageView, headers(("ETag" = String))),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn get_page_by_path(
@@ -345,11 +207,7 @@ async fn get_page_by_path(
 ) -> Result<Response, ApiError> {
     let path = PagePath::parse(&query.path).map_err(|_| ApiError::InvalidInput("path"))?;
     let (id, page) = read::read_with_id(state.pool(), &session.actor, &path, None).await?;
-    Ok(versioned(
-        StatusCode::OK,
-        page.version,
-        PageView::new(id, page),
-    ))
+    Ok(versioned(StatusCode::OK, page.version, page_view(id, page)))
 }
 
 #[utoipa::path(
@@ -364,13 +222,13 @@ async fn get_page_by_path(
     request_body = PageCreate,
     responses(
         (status = 201, body = PageView, headers(("ETag" = String), ("Location" = String))),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 403, body = ErrorBody),
-        (status = 409, description = "A file holds the path", body = ErrorBody),
-        (status = 412, description = "A page holds the path; the body is that page", body = PreconditionFailedBody),
-        (status = 422, description = "The page breaks the grammar or matches a credential pattern", body = ErrorBody),
-        (status = 428, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
+        (status = 409, description = "A file holds the path", body = Problem, content_type = "application/problem+json"),
+        (status = 412, description = "A page holds the path; the body is that page", body = Problem),
+        (status = 422, description = "The page breaks the grammar or matches a credential pattern", body = Problem, content_type = "application/problem+json"),
+        (status = 428, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn create_page(
@@ -400,7 +258,7 @@ async fn create_page(
             let location = HeaderValue::from_str(&format!("/api/pages/{}", id.0))
                 .map_err(|_| ApiError::InvalidInput("path"))?;
             let version = page.version;
-            let mut response = versioned(StatusCode::CREATED, version, PageView::new(id, page));
+            let mut response = versioned(StatusCode::CREATED, version, page_view(id, page));
             response.headers_mut().insert(LOCATION, location);
             Ok(response)
         }
@@ -408,7 +266,7 @@ async fn create_page(
             match read::read_with_id(state.pool(), &session.actor, &path, None).await {
                 Ok((id, page)) => Err(ApiError::PreconditionFailed {
                     version: VersionNumber(page.version),
-                    current: Some(Box::new(PageView::new(id, page))),
+                    current: Some(Box::new(page_view(id, page))),
                 }),
                 Err(_) => Err(PagesError::PathTaken.into()),
             }
@@ -426,9 +284,9 @@ async fn create_page(
     responses(
         (status = 200, body = PageView, headers(("ETag" = String))),
         (status = 304),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 410, description = "The page was purged", body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 410, description = "The page was purged", body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn get_page(
@@ -446,11 +304,7 @@ async fn get_page(
         response.headers_mut().insert(ETAG, tag);
         return Ok(response);
     }
-    Ok(versioned(
-        StatusCode::OK,
-        page.version,
-        PageView::new(id, page),
-    ))
+    Ok(versioned(StatusCode::OK, page.version, page_view(id, page)))
 }
 
 #[utoipa::path(
@@ -465,11 +319,11 @@ async fn get_page(
     request_body = PageOverwrite,
     responses(
         (status = 200, body = PageView, headers(("ETag" = String))),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 412, description = "The page changed; the body is its current state", body = PreconditionFailedBody),
-        (status = 422, body = ErrorBody),
-        (status = 428, body = ErrorBody),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 412, description = "The page changed; the body is its current state", body = Problem),
+        (status = 422, body = Problem, content_type = "application/problem+json"),
+        (status = 428, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn overwrite_page(
@@ -505,12 +359,12 @@ async fn overwrite_page(
     request_body = PageEdit,
     responses(
         (status = 200, body = PageView, headers(("ETag" = String))),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 412, description = "The page changed; the body is its current state", body = PreconditionFailedBody),
-        (status = 422, body = ErrorBody),
-        (status = 428, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 412, description = "The page changed; the body is its current state", body = Problem),
+        (status = 422, body = Problem, content_type = "application/problem+json"),
+        (status = 428, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn edit_page(
@@ -581,11 +435,7 @@ async fn revise(
         return Err(refine(state, session, id, error).await);
     }
     let page = read::read_by_id(state.pool(), &session.actor, id, None).await?;
-    Ok(versioned(
-        StatusCode::OK,
-        page.version,
-        PageView::new(id, page),
-    ))
+    Ok(versioned(StatusCode::OK, page.version, page_view(id, page)))
 }
 
 #[utoipa::path(
@@ -599,11 +449,11 @@ async fn revise(
     ),
     responses(
         (status = 204),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 412, description = "The page changed; the body is its current state", body = PreconditionFailedBody),
-        (status = 428, body = ErrorBody),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 412, description = "The page changed; the body is its current state", body = Problem),
+        (status = 428, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn delete_page(
@@ -629,13 +479,13 @@ async fn delete_page(
     params(
         ("id" = i64, Path),
         ("limit" = Option<u32>, Query),
-        ("before" = Option<i32>, Query, description = "Only versions older than this number"),
+        ("cursor" = Option<String>, Query, description = "The `next` value of the previous page"),
     ),
     responses(
-        (status = 200, body = VersionListView),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 410, body = ErrorBody),
+        (status = 200, body = VersionList),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 410, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn list_versions(
@@ -643,13 +493,17 @@ async fn list_versions(
     session: WebSession,
     Path(id): Path<PageId>,
     Query(query): Query<VersionsQuery>,
-) -> Result<Json<VersionListView>, ApiError> {
+) -> Result<Json<VersionList>, ApiError> {
+    let before = query
+        .cursor
+        .as_deref()
+        .map(|cursor| cursor.parse().map_err(|_| ApiError::InvalidInput("cursor")))
+        .transpose()?;
     let page =
-        history::versions_of_page(state.pool(), &session.actor, id, query.limit, query.before)
-            .await?;
-    Ok(Json(VersionListView {
-        versions: page.versions.into_iter().map(VersionView::from).collect(),
-        next_before: page.next_before,
+        history::versions_of_page(state.pool(), &session.actor, id, query.limit, before).await?;
+    Ok(Json(VersionList {
+        versions: page.versions.into_iter().map(version_view).collect(),
+        next: page.next_before.map(|before| before.to_string()),
     }))
 }
 
@@ -664,12 +518,12 @@ async fn list_versions(
         ("If-Match" = String, Header, description = "Strong ETag of the current version"),
     ),
     responses(
-        (status = 200, body = RestoredView, headers(("ETag" = String))),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 409, description = "The page already has that state, or its path is taken", body = ErrorBody),
-        (status = 412, description = "The page changed; the body is its current state", body = PreconditionFailedBody),
-        (status = 428, body = ErrorBody),
+        (status = 200, body = Restored, headers(("ETag" = String))),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 409, description = "The page already has that state, or its path is taken", body = Problem, content_type = "application/problem+json"),
+        (status = 412, description = "The page changed; the body is its current state", body = Problem),
+        (status = 428, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn restore_version(
@@ -686,12 +540,8 @@ async fn restore_version(
     match restored {
         Ok(output) => {
             let version = output.reverted.first().map_or(0, |written| written.version);
-            let reverted = output.reverted.into_iter().map(WrittenView::from).collect();
-            Ok(versioned(
-                StatusCode::OK,
-                version,
-                RestoredView { reverted },
-            ))
+            let reverted = output.reverted.into_iter().map(written).collect();
+            Ok(versioned(StatusCode::OK, version, Restored { reverted }))
         }
         Err(error) => Err(refine(&state, &session, id, error).await),
     }
@@ -708,13 +558,13 @@ async fn restore_version(
     ),
     request_body = PageMove,
     responses(
-        (status = 200, body = MovedView, headers(("ETag" = String))),
-        (status = 400, body = ErrorBody),
-        (status = 401, body = ErrorBody),
-        (status = 404, body = ErrorBody),
-        (status = 409, description = "The target path is taken", body = ErrorBody),
-        (status = 412, description = "The page changed; the body is its current state", body = PreconditionFailedBody),
-        (status = 428, body = ErrorBody),
+        (status = 200, body = Moved, headers(("ETag" = String))),
+        (status = 400, body = Problem, content_type = "application/problem+json"),
+        (status = 401, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 409, description = "The target path is taken", body = Problem, content_type = "application/problem+json"),
+        (status = 412, description = "The page changed; the body is its current state", body = Problem),
+        (status = 428, body = Problem, content_type = "application/problem+json"),
     )
 )]
 async fn move_page(
@@ -740,15 +590,11 @@ async fn move_page(
     match moved {
         Ok(output) => {
             let version = output.version;
-            let view = MovedView {
-                id,
+            let view = Moved {
+                id: id.0,
                 path: output.path,
                 version,
-                rewritten: output
-                    .rewritten
-                    .into_iter()
-                    .map(WrittenView::from)
-                    .collect(),
+                rewritten: output.rewritten.into_iter().map(written).collect(),
                 rewritten_out_of_scope: output.rewritten_out_of_scope,
             };
             Ok(versioned(StatusCode::OK, version, view))
