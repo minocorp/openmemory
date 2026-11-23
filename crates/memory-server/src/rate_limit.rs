@@ -11,7 +11,7 @@ use std::time::Duration;
 use axum::Json;
 use axum::extract::{ConnectInfo, Request, State};
 use axum::http::header::RETRY_AFTER;
-use axum::http::{HeaderName, HeaderValue, StatusCode};
+use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use governor::clock::{Clock, DefaultClock};
@@ -40,7 +40,6 @@ pub(crate) struct RateLimits {
     authorize: Arc<DefaultKeyedRateLimiter<IpAddr>>,
     upload_link: Arc<DefaultKeyedRateLimiter<IpAddr>>,
     proxies: Arc<[TrustedProxy]>,
-    client_ip_header: Option<HeaderName>,
     warned_unconfigured_proxy: Arc<AtomicBool>,
 }
 
@@ -65,7 +64,6 @@ impl RateLimits {
     pub(crate) fn behind(proxies: Vec<TrustedProxy>) -> Self {
         Self {
             proxies: proxies.into(),
-            client_ip_header: None,
             auth: limiter(30, Duration::from_secs(2)),
             token: limiter(60, Duration::from_secs(1)),
             registration: limiter(10, Duration::from_secs(6)),
@@ -73,11 +71,6 @@ impl RateLimits {
             upload_link: limiter(20, Duration::from_secs(3)),
             warned_unconfigured_proxy: Arc::new(AtomicBool::new(false)),
         }
-    }
-
-    pub(crate) fn reading_client_ip_from(mut self, header: Option<HeaderName>) -> Self {
-        self.client_ip_header = header;
-        self
     }
 
     pub(crate) fn prune(&self) {
@@ -165,10 +158,7 @@ impl RateLimits {
             .get::<ConnectInfo<SocketAddr>>()
             .map_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED), |info| info.0.ip());
         self.warn_if_proxy_unconfigured(request, peer);
-        let address = self
-            .header_client(request, peer)
-            .or_else(|| self.forwarded_client(request, peer))
-            .unwrap_or(peer);
+        let address = self.forwarded_client(request, peer).unwrap_or(peer);
         match address.to_canonical() {
             IpAddr::V4(v4) => IpAddr::V4(v4),
             IpAddr::V6(v6) => {
@@ -198,21 +188,6 @@ impl RateLimits {
 
     fn is_trusted(&self, address: IpAddr) -> bool {
         self.proxies.iter().any(|proxy| proxy.contains(address))
-    }
-
-    fn header_client(&self, request: &Request, peer: IpAddr) -> Option<IpAddr> {
-        let header = self.client_ip_header.as_ref()?;
-        if !self.is_trusted(peer) {
-            return None;
-        }
-        request
-            .headers()
-            .get(header)?
-            .to_str()
-            .ok()?
-            .trim()
-            .parse()
-            .ok()
     }
 
     // Walk X-Forwarded-For from the right past trusted proxies; the first other entry is the client.

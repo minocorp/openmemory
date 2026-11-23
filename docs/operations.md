@@ -23,7 +23,6 @@ The server listens on `MEMORY_HTTP_BIND` (default `127.0.0.1:8080`). If your pro
 | `MEMORY_BACKUP_PASSPHRASE` | Encrypts every backup. Losing it loses the backups | required |
 | `MEMORY_HTTP_BIND` | Host address and port for the server | `127.0.0.1:8080` |
 | `MEMORY_TRUSTED_PROXIES` | Comma-separated addresses or CIDRs allowed to set `X-Forwarded-For` | none |
-| `MEMORY_CLIENT_IP_HEADER` | Header holding the single client IP, read only from a peer in `MEMORY_TRUSTED_PROXIES` (for example `CF-Connecting-IP` behind Cloudflare); a missing or invalid value falls back to `X-Forwarded-For` | none |
 | `MEMORY_TIMEZONE` | IANA time zone for dates | `UTC` |
 | `MEMORY_MAX_UPLOAD_BYTES` | Upload size cap | 52428800 |
 | `MEMORY_BACKUP_RETENTION_DAYS` | Days of backups and blob snapshots kept | 14 |

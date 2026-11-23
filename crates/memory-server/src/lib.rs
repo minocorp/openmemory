@@ -96,7 +96,6 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
         .context("configure public url")?
         .with_time_zone(config.time_zone().clone())
         .with_trusted_proxies(config.trusted_proxies())
-        .with_client_ip_header(config.client_ip_header().cloned())
         .with_backup(backup::Backup::from_config(config.backup()));
     if let Some(link) = state.bootstrap_link().await.context("arm bootstrap")? {
         tracing::info!(%link, "no users yet: open this link to create the first admin");

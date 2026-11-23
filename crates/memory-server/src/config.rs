@@ -3,7 +3,6 @@ use std::fmt;
 use std::net::SocketAddr;
 use std::str::FromStr;
 
-use axum::http::HeaderName;
 use clap::Parser;
 use url::{Host, Url};
 
@@ -35,8 +34,6 @@ pub struct Config {
     time_zone: TimeZone,
     #[arg(long, env = "MEMORY_TRUSTED_PROXIES", value_delimiter = ',')]
     trusted_proxies: Vec<TrustedProxy>,
-    #[arg(long, env = "MEMORY_CLIENT_IP_HEADER")]
-    client_ip_header: Option<HeaderName>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -89,10 +86,6 @@ impl Config {
 
     pub(crate) fn trusted_proxies(&self) -> &[TrustedProxy] {
         &self.trusted_proxies
-    }
-
-    pub(crate) fn client_ip_header(&self) -> Option<&HeaderName> {
-        self.client_ip_header.as_ref()
     }
 }
 

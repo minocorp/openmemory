@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use axum::http::HeaderName;
 use object_store::ObjectStore;
 use sqlx::PgPool;
 use webauthn_rs::prelude::WebauthnError;
@@ -63,11 +62,6 @@ impl AppState {
 
     pub(crate) fn with_trusted_proxies(mut self, proxies: &[TrustedProxy]) -> Self {
         self.rate_limits = RateLimits::behind(proxies.to_vec());
-        self
-    }
-
-    pub(crate) fn with_client_ip_header(mut self, header: Option<HeaderName>) -> Self {
-        self.rate_limits = self.rate_limits.reading_client_ip_from(header);
         self
     }
 
