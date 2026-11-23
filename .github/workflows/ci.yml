@@ -38,6 +38,7 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo install sqlx-cli --version 0.9.1 --locked --no-default-features --features postgres,rustls
+      - run: cargo sqlx migrate run --source crates/memory-server/migrations
       - run: cargo sqlx prepare --workspace --check -- --all-targets
       - run: cargo test --workspace --locked
       - name: OpenAPI document is committed
