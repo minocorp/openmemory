@@ -13,12 +13,12 @@ export function getPageByPath(path: string) {
   return unwrap(client.GET("/api/pages", { params: { query: { path } } }));
 }
 
-export function listVersions(options: { id: number; before?: number | undefined }) {
+export function listVersions(options: { id: number; cursor?: string | undefined }) {
   return unwrap(
     client.GET("/api/pages/{id}/versions", {
       params: {
         path: { id: options.id },
-        query: options.before === undefined ? { limit: 20 } : { limit: 20, before: options.before },
+        query: options.cursor === undefined ? { limit: 20 } : { limit: 20, cursor: options.cursor },
       },
     }),
   );

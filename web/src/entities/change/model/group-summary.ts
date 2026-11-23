@@ -1,6 +1,6 @@
 import type { components } from "@/shared/api";
 
-export type ChangeGroup = components["schemas"]["ChangeGroupView"];
+export type ChangeGroup = components["schemas"]["ChangeGroup"];
 
 export type PageChange = { path: string; pageId: number; op: string; diff: string };
 

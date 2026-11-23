@@ -1,7 +1,9 @@
 import { z } from "@/shared/lib/zod";
 
+const problemTypePrefix = "urn:memory:problem:";
+
 const bodySchema = z.object({
-  error: z.string(),
+  type: z.string(),
   field: z.string().nullish(),
   line: z.number().nullish(),
   reason: z.string().nullish(),
@@ -19,10 +21,11 @@ export class ApiError extends Error {
   constructor(status: number, body: unknown) {
     const parsed = bodySchema.safeParse(body);
     const detail = parsed.success ? parsed.data : null;
-    super(detail?.error ?? "unknown_error");
+    const code = detail?.type.replace(problemTypePrefix, "") ?? "unknown_error";
+    super(code);
     this.name = "ApiError";
     this.status = status;
-    this.code = detail?.error ?? "unknown_error";
+    this.code = code;
     this.field = detail?.field ?? null;
     this.line = detail?.line ?? null;
     this.reason = detail?.reason ?? null;

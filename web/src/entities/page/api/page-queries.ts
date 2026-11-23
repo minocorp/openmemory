@@ -3,8 +3,6 @@ import { infiniteQueryOptions, queryOptions, type QueryClient } from "@tanstack/
 import type { Page } from "../model/types";
 import { getPage, getPageVersion, listVersions } from "./page-api";
 
-const noCursor = 0;
-
 export const pageQuery = (id: number) =>
   queryOptions({ queryKey: ["page", id], queryFn: () => getPage(id) });
 
@@ -18,10 +16,9 @@ export const pageVersionQuery = (id: number, version: number) =>
 export const versionsQuery = (id: number) =>
   infiniteQueryOptions({
     queryKey: ["page", id, "versions"],
-    queryFn: ({ pageParam }) =>
-      listVersions({ id, before: pageParam === noCursor ? undefined : pageParam }),
-    initialPageParam: noCursor,
-    getNextPageParam: (last) => last.next_before ?? undefined,
+    queryFn: ({ pageParam }) => listVersions({ id, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next ?? undefined,
   });
 
 export function applySavedPage(queryClient: QueryClient, page: Page) {

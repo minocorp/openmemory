@@ -6,24 +6,24 @@ import { describeUploadError, fileMime } from "./upload-problem";
 
 describe("describeUploadError", () => {
   it("names the secret pattern of a rejected text", () => {
-    const body = { error: "credential", pattern: "private_key" };
+    const body = { type: "urn:memory:problem:credential", pattern: "private_key" };
     expect(describeUploadError(new ApiError(422, body), body)).toContain("private_key");
   });
 
   it("states the size limit", () => {
-    const body = { error: "too_large", limit: 52_428_800 };
+    const body = { type: "urn:memory:problem:too_large", limit: 52_428_800 };
     expect(describeUploadError(new ApiError(413, body), body)).toBe(
       "The file is larger than 50 MB.",
     );
   });
 
   it("explains a taken path and an unsupported type", () => {
-    expect(describeUploadError(new ApiError(409, { error: "path_taken" }), null)).toContain(
-      "already exists",
-    );
-    expect(describeUploadError(new ApiError(415, { error: "unsupported_type" }), null)).toContain(
-      "not accepted",
-    );
+    expect(
+      describeUploadError(new ApiError(409, { type: "urn:memory:problem:path_taken" }), null),
+    ).toContain("already exists");
+    expect(
+      describeUploadError(new ApiError(415, { type: "urn:memory:problem:unsupported_type" }), null),
+    ).toContain("not accepted");
   });
 });
 

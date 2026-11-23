@@ -420,6 +420,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/files/{id}/text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_file_text"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/folder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_folder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/invites": {
         parameters: {
             query?: never;
@@ -818,6 +850,8 @@ export interface components {
             name?: components["schemas"]["Name"] | null;
             scopes?: string[] | null;
         };
+        /** @enum {string} */
+        BackupProblem: "status_missing" | "status_stale" | "full_backup_stale" | "backup_stale" | "wal_archive_stale" | "blob_backup_stale" | "restore_test_failed" | "restore_test_stale";
         BackupReport: {
             /** Format: int64 */
             blobs_age_seconds?: number | null;
@@ -826,7 +860,7 @@ export interface components {
             /** Format: int64 */
             last_full_age_seconds?: number | null;
             off_host: boolean;
-            problems: components["schemas"]["Problem"][];
+            problems: components["schemas"]["BackupProblem"][];
             restore_test?: components["schemas"]["RestoreTestReport"] | null;
             /** Format: int64 */
             wal_archive_age_seconds?: number | null;
@@ -835,27 +869,33 @@ export interface components {
             challenge: string;
             options: Record<string, unknown>;
         };
-        ChangeGroupView: {
+        ChangeGroup: {
             at: string;
             author: string;
             author_display_name: string;
-            id: components["schemas"]["GroupId"];
+            /** Format: int64 */
+            id: number;
             task?: string | null;
-            versions: components["schemas"]["ChangedVersionView"][];
+            versions: components["schemas"]["ChangedVersion"][];
         };
-        ChangedVersionView: {
+        ChangedVersion: {
             diff: string;
-            op: components["schemas"]["OperationView"];
-            page_id: components["schemas"]["PageId"];
+            op: components["schemas"]["Operation"];
+            /** Format: int64 */
+            page_id: number;
             path: string;
-            seq: components["schemas"]["Seq"];
+            /** Format: int64 */
+            seq: number;
             /** Format: int32 */
             version: number;
         };
-        ChangesView: {
-            groups: components["schemas"]["ChangeGroupView"][];
-            last_seq: components["schemas"]["Seq"];
-            since: components["schemas"]["Seq"];
+        Changes: {
+            groups: components["schemas"]["ChangeGroup"][];
+            /** Format: int64 */
+            last_seq: number;
+            next?: string | null;
+            /** Format: int64 */
+            since: number;
         };
         ClientSummary: {
             client_id: string;
@@ -916,18 +956,17 @@ export interface components {
             redirect_uri?: string | null;
         };
         DisplayName: string;
-        ErrorBody: {
-            error: string;
-            field?: string | null;
-        };
+        /** @enum {string} */
+        EntryKind: "page" | "file" | "folder";
         FieldView: {
             key: string;
             values: string[];
         };
-        FileHitView: {
+        FileHit: {
             at: string;
             author: string;
-            file_id: components["schemas"]["FileId"];
+            /** Format: int64 */
+            file_id: number;
             line?: string | null;
             /** Format: int32 */
             line_number?: number | null;
@@ -935,18 +974,25 @@ export interface components {
             page?: number | null;
             path: string;
         };
-        /** Format: int64 */
-        FileId: number;
         FileSourceView: {
             /** Format: int32 */
             page?: number | null;
             path: string;
             quote?: string | null;
         };
+        FileText: {
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            page_count: number;
+            path: string;
+            text: string;
+        };
         FileView: {
             /** Format: date-time */
             created_at: string;
-            id: components["schemas"]["FileId"];
+            /** Format: int64 */
+            id: number;
             mime: string;
             /** Format: int64 */
             page_count: number;
@@ -954,17 +1000,17 @@ export interface components {
             /** Format: int64 */
             size: number;
         };
-        FolderView: {
-            /** Format: int32 */
-            files: number;
-            /** Format: int32 */
-            pages: number;
+        FolderEntry: {
+            kind: components["schemas"]["EntryKind"];
+            name: string;
+        };
+        FolderListing: {
+            entries: components["schemas"]["FolderEntry"][];
+            next?: string | null;
             path: string;
         };
-        /** Format: int64 */
-        GroupId: number;
-        GroupRevertedView: {
-            reverted: components["schemas"]["WrittenView"][];
+        GroupReverted: {
+            reverted: components["schemas"]["Written"][];
         };
         ImportReport: {
             files: number;
@@ -1006,24 +1052,25 @@ export interface components {
             display_name?: components["schemas"]["DisplayName"] | null;
             username?: components["schemas"]["Username"] | null;
         };
-        MovedView: {
-            id: components["schemas"]["PageId"];
+        Moved: {
+            /** Format: int64 */
+            id: number;
             path: string;
-            rewritten: components["schemas"]["WrittenView"][];
+            rewritten: components["schemas"]["Written"][];
             /** Format: int32 */
             rewritten_out_of_scope: number;
             /** Format: int32 */
             version: number;
         };
         Name: string;
-        NoHitsView: {
+        NoHits: {
             fields_in_scope: string[];
             /** Format: int32 */
             folders_out_of_scope: number;
             query: string;
         };
         /** @enum {string} */
-        OperationView: "create" | "edit" | "move" | "relink" | "delete" | "revert";
+        Operation: "create" | "edit" | "move" | "relink" | "delete" | "revert";
         PageCreate: {
             content: string;
             task?: string | null;
@@ -1033,17 +1080,16 @@ export interface components {
             replace?: components["schemas"]["ReplaceBody"] | null;
             task?: string | null;
         };
-        PageHitView: {
+        PageHit: {
             at: string;
             author: string;
             line?: string | null;
             /** Format: int32 */
             line_number?: number | null;
-            page_id: components["schemas"]["PageId"];
+            /** Format: int64 */
+            page_id: number;
             path: string;
         };
-        /** Format: int64 */
-        PageId: number;
         PageMove: {
             task?: string | null;
             to: string;
@@ -1057,7 +1103,8 @@ export interface components {
             body: string;
             content: string;
             fields: components["schemas"]["FieldView"][];
-            id: components["schemas"]["PageId"];
+            /** Format: int64 */
+            id: number;
             path: string;
             timeline: components["schemas"]["TimelineView"][];
             updated_at: string;
@@ -1074,12 +1121,13 @@ export interface components {
             last_used_at?: string | null;
             name: string;
         };
-        PreconditionFailedBody: {
-            current?: components["schemas"]["PageView"] | null;
-            error: string;
+        Problem: Record<string, unknown> & {
+            detail?: string | null;
+            /** Format: int32 */
+            status: number;
+            title: string;
+            type: string;
         };
-        /** @enum {string} */
-        Problem: "status_missing" | "status_stale" | "full_backup_stale" | "backup_stale" | "wal_archive_stale" | "blob_backup_stale" | "restore_test_failed" | "restore_test_stale";
         ProfileUpdate: {
             display_name?: components["schemas"]["DisplayName"] | null;
             username?: components["schemas"]["Username"] | null;
@@ -1117,24 +1165,23 @@ export interface components {
             at: string;
             ok: boolean;
         };
-        RestoredView: {
-            reverted: components["schemas"]["WrittenView"][];
+        Restored: {
+            reverted: components["schemas"]["Written"][];
         };
-        SearchView: {
-            files: components["schemas"]["FileHitView"][];
-            /** Format: int64 */
-            next_cursor?: number | null;
-            no_hits?: components["schemas"]["NoHitsView"] | null;
-            pages: components["schemas"]["PageHitView"][];
+        SearchResults: {
+            files: components["schemas"]["FileHit"][];
+            next?: string | null;
+            no_hits?: components["schemas"]["NoHits"] | null;
+            pages: components["schemas"]["PageHit"][];
         };
         SeenRequest: {
-            seq: components["schemas"]["Seq"];
+            /** Format: int64 */
+            seq: number;
         };
-        SeenView: {
-            last_seen_seq: components["schemas"]["Seq"];
+        SeenState: {
+            /** Format: int64 */
+            last_seen_seq: number;
         };
-        /** Format: int64 */
-        Seq: number;
         SignedUp: {
             recovery_code: string;
             user_id: components["schemas"]["UserId"];
@@ -1168,15 +1215,24 @@ export interface components {
             source: string;
             text: string;
         };
-        TreeFileView: {
-            id: components["schemas"]["FileId"];
+        TreeFile: {
+            /** Format: int64 */
+            id: number;
             mime: string;
             path: string;
             /** Format: int64 */
             size: number;
         };
-        TreePageView: {
-            id: components["schemas"]["PageId"];
+        TreeFolder: {
+            /** Format: int32 */
+            files: number;
+            /** Format: int32 */
+            pages: number;
+            path: string;
+        };
+        TreePage: {
+            /** Format: int64 */
+            id: number;
             path: string;
             /** Format: date-time */
             updated_at: string;
@@ -1184,9 +1240,9 @@ export interface components {
             version: number;
         };
         TreeView: {
-            files: components["schemas"]["TreeFileView"][];
-            folders: components["schemas"]["FolderView"][];
-            pages: components["schemas"]["TreePageView"][];
+            files: components["schemas"]["TreeFile"][];
+            folders: components["schemas"]["TreeFolder"][];
+            pages: components["schemas"]["TreePage"][];
         };
         UploadLinkView: {
             /** Format: date-time */
@@ -1208,9 +1264,8 @@ export interface components {
             username: string;
         };
         Username: string;
-        VersionListView: {
-            /** Format: int32 */
-            next_before?: number | null;
+        VersionList: {
+            next?: string | null;
             versions: components["schemas"]["VersionView"][];
         };
         VersionView: {
@@ -1219,14 +1274,14 @@ export interface components {
             diff: string;
             /** Format: int64 */
             group: number;
-            op: components["schemas"]["OperationView"];
+            op: components["schemas"]["Operation"];
             path: string;
             /** Format: int32 */
             reverts_version?: number | null;
             /** Format: int32 */
             version: number;
         };
-        WrittenView: {
+        Written: {
             path: string;
             /** Format: int32 */
             version: number;
@@ -1267,7 +1322,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             409: {
@@ -1275,7 +1330,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1306,7 +1361,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             409: {
@@ -1314,7 +1369,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1345,7 +1400,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1377,7 +1432,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -1385,7 +1440,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1412,7 +1467,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1444,7 +1499,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -1452,7 +1507,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1483,7 +1538,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1508,7 +1563,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1535,7 +1590,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1566,7 +1621,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -1574,7 +1629,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The username is taken */
@@ -1583,7 +1638,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1610,7 +1665,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1639,7 +1694,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -1647,7 +1702,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             409: {
@@ -1655,7 +1710,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1686,7 +1741,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1717,7 +1772,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -1725,7 +1780,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             409: {
@@ -1733,7 +1788,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1765,7 +1820,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1796,7 +1851,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1828,7 +1883,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             409: {
@@ -1836,7 +1891,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1867,7 +1922,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             409: {
@@ -1875,7 +1930,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1885,6 +1940,8 @@ export interface operations {
             query?: {
                 /** @description Defaults to the caller's last seen sequence */
                 since?: number;
+                /** @description The `next` value of the previous page; overrides `since` */
+                cursor?: string;
                 limit?: number;
             };
             header?: never;
@@ -1898,7 +1955,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChangesView"];
+                    "application/json": components["schemas"]["Changes"];
                 };
             };
             401: {
@@ -1906,7 +1963,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1929,7 +1986,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SeenView"];
+                    "application/json": components["schemas"]["SeenState"];
                 };
             };
             401: {
@@ -1937,7 +1994,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -1958,7 +2015,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GroupRevertedView"];
+                    "application/json": components["schemas"]["GroupReverted"];
                 };
             };
             401: {
@@ -1966,7 +2023,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -1974,7 +2031,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description A page changed since the group or its path is taken; nothing was reverted */
@@ -1983,7 +2040,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2010,7 +2067,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2037,7 +2094,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2045,7 +2102,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2078,7 +2135,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -2086,7 +2143,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2094,7 +2151,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             409: {
@@ -2102,7 +2159,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2131,7 +2188,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -2139,7 +2196,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2147,7 +2204,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2185,7 +2242,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -2193,7 +2250,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -2201,7 +2258,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             409: {
@@ -2209,7 +2266,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             413: {
@@ -2217,7 +2274,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             415: {
@@ -2225,7 +2282,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             422: {
@@ -2233,7 +2290,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2262,7 +2319,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2270,7 +2327,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             410: {
@@ -2278,7 +2335,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2305,7 +2362,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -2313,7 +2370,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2321,7 +2378,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2376,7 +2433,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2384,7 +2441,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             410: {
@@ -2392,7 +2449,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The range starts beyond the end of the file */
@@ -2431,7 +2488,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -2439,7 +2496,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2447,7 +2504,108 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    get_file_text: {
+        parameters: {
+            query?: {
+                /** @description Text page number, from 1 */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileText"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No such file or text page */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The file has no extracted text pages */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    list_folder: {
+        parameters: {
+            query?: {
+                /** @description Folder path; empty for the top level */
+                path?: string;
+                /** @description At most 500; default 100 */
+                limit?: number;
+                /** @description The `next` value of the previous page */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderListing"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Nothing at the path */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2474,7 +2632,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -2482,7 +2640,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2513,7 +2671,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -2521,7 +2679,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2548,7 +2706,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -2556,7 +2714,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2564,7 +2722,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2594,7 +2752,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2602,7 +2760,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2636,7 +2794,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -2644,7 +2802,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2652,7 +2810,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             409: {
@@ -2660,7 +2818,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2690,7 +2848,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2698,7 +2856,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2728,7 +2886,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2736,7 +2894,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2786,7 +2944,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -2794,7 +2952,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2802,7 +2960,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2840,7 +2998,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -2848,7 +3006,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -2856,7 +3014,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description A file holds the path */
@@ -2865,7 +3023,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description A page holds the path; the body is that page */
@@ -2874,7 +3032,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PreconditionFailedBody"];
+                    "application/json": components["schemas"]["Problem"];
                 };
             };
             /** @description The page breaks the grammar or matches a credential pattern */
@@ -2883,7 +3041,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             428: {
@@ -2891,7 +3049,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2929,7 +3087,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2937,7 +3095,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The page was purged */
@@ -2946,7 +3104,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -2983,7 +3141,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -2991,7 +3149,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The page changed; the body is its current state */
@@ -3000,7 +3158,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PreconditionFailedBody"];
+                    "application/json": components["schemas"]["Problem"];
                 };
             };
             422: {
@@ -3008,7 +3166,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             428: {
@@ -3016,7 +3174,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3046,7 +3204,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -3054,7 +3212,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -3062,7 +3220,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The page changed; the body is its current state */
@@ -3071,7 +3229,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PreconditionFailedBody"];
+                    "application/json": components["schemas"]["Problem"];
                 };
             };
             428: {
@@ -3079,7 +3237,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3116,7 +3274,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -3124,7 +3282,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -3132,7 +3290,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The page changed; the body is its current state */
@@ -3141,7 +3299,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PreconditionFailedBody"];
+                    "application/json": components["schemas"]["Problem"];
                 };
             };
             422: {
@@ -3149,7 +3307,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             428: {
@@ -3157,7 +3315,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3186,7 +3344,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MovedView"];
+                    "application/json": components["schemas"]["Moved"];
                 };
             };
             400: {
@@ -3194,7 +3352,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -3202,7 +3360,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -3210,7 +3368,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The target path is taken */
@@ -3219,7 +3377,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The page changed; the body is its current state */
@@ -3228,7 +3386,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PreconditionFailedBody"];
+                    "application/json": components["schemas"]["Problem"];
                 };
             };
             428: {
@@ -3236,7 +3394,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3268,7 +3426,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -3276,7 +3434,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -3284,7 +3442,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -3292,7 +3450,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3301,8 +3459,8 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
-                /** @description Only versions older than this number */
-                before?: number;
+                /** @description The `next` value of the previous page */
+                cursor?: string;
             };
             header?: never;
             path: {
@@ -3317,7 +3475,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VersionListView"];
+                    "application/json": components["schemas"]["VersionList"];
                 };
             };
             401: {
@@ -3325,7 +3483,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -3333,7 +3491,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             410: {
@@ -3341,7 +3499,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3367,7 +3525,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RestoredView"];
+                    "application/json": components["schemas"]["Restored"];
                 };
             };
             401: {
@@ -3375,7 +3533,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -3383,7 +3541,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The page already has that state, or its path is taken */
@@ -3392,7 +3550,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The page changed; the body is its current state */
@@ -3401,7 +3559,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PreconditionFailedBody"];
+                    "application/json": components["schemas"]["Problem"];
                 };
             };
             428: {
@@ -3409,7 +3567,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3436,7 +3594,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -3444,7 +3602,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3458,7 +3616,8 @@ export interface operations {
                 where?: string[];
                 folder?: string;
                 limit?: number;
-                cursor?: number;
+                /** @description The `next` value of the previous page */
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -3471,7 +3630,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SearchView"];
+                    "application/json": components["schemas"]["SearchResults"];
                 };
             };
             400: {
@@ -3479,7 +3638,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -3487,7 +3646,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3514,7 +3673,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -3522,7 +3681,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3554,7 +3713,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -3562,7 +3721,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3595,7 +3754,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -3603,7 +3762,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -3611,7 +3770,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             413: {
@@ -3619,7 +3778,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3646,7 +3805,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3676,7 +3835,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3713,7 +3872,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The link is unknown, expired or used */
@@ -3722,7 +3881,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             409: {
@@ -3730,7 +3889,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             413: {
@@ -3738,7 +3897,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             415: {
@@ -3746,7 +3905,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             422: {
@@ -3754,7 +3913,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description Too many uploads are in flight */
@@ -3763,7 +3922,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3790,7 +3949,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -3798,7 +3957,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3831,7 +3990,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -3839,7 +3998,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -3847,7 +4006,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The user is the last admin */
@@ -3856,7 +4015,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -3889,7 +4048,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             401: {
@@ -3897,7 +4056,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             403: {
@@ -3905,7 +4064,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {
@@ -3913,7 +4072,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description The username is taken */
@@ -3922,7 +4081,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorBody"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };

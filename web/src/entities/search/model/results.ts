@@ -1,6 +1,6 @@
 import type { components } from "@/shared/api";
 
-type SearchView = components["schemas"]["SearchView"];
+type SearchView = components["schemas"]["SearchResults"];
 
 export type SearchResult = {
   key: string;

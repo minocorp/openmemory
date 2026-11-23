@@ -1,7 +1,7 @@
 import type { components } from "@/shared/api";
 import { addedLines } from "@/shared/lib/unified-diff";
 
-type Changes = components["schemas"]["ChangesView"];
+type Changes = components["schemas"]["Changes"];
 
 export type UnseenChange = {
   version: number;
