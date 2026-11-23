@@ -1,157 +1,198 @@
 use std::fmt::Write;
 
-use memory_ops::{
-    EntryKind, Envelope, FileRead, FolderRead, HistoryOutput, MoveOutput, Origin, PageRead,
-    ReadOutput, RevertOutput, SearchOutput, UploadOutput, WriteOutput,
+use memory_api::{
+    Changes, EntryKind, FolderEntry, Operation, SearchResults, VersionList, VersionView,
 };
 
-pub(crate) fn read(envelope: &Envelope<ReadOutput>) -> String {
-    let body = match &envelope.result {
-        ReadOutput::Page(page) => page_text(page),
-        ReadOutput::Folder(folder) => folder_text(folder),
-        ReadOutput::File(file) => file_text(file),
-    };
-    format!("{}\n{body}", data_line(envelope.origin))
+use crate::output::Output;
+
+pub(crate) fn entries(listing: &[FolderEntry]) -> String {
+    let mut text = String::new();
+    for entry in listing {
+        let suffix = if entry.kind == EntryKind::Folder {
+            "/"
+        } else {
+            ""
+        };
+        let _ = writeln!(text, "{}{suffix}", entry.name);
+    }
+    text
 }
 
-pub(crate) fn search(envelope: &Envelope<SearchOutput>) -> String {
-    let output = &envelope.result;
-    let mut text = format!("{}\n", data_line(envelope.origin));
-    for hit in &output.hits {
-        let source = hit
-            .page
-            .map_or_else(|| hit.path.clone(), |page| format!("{}#p{page}", hit.path));
+pub(crate) fn search(results: &SearchResults, output: Output) -> String {
+    let mut text = String::new();
+    for hit in &results.pages {
         let place = hit
             .line_number
-            .map_or(source.clone(), |line| format!("{source}:{line}"));
+            .map_or_else(String::new, |line| format!(":{line}"));
         let line = hit.line.as_deref().unwrap_or_default();
-        let _ = writeln!(text, "{place}  {line}  ({}, {})", hit.author, hit.at);
+        let _ = writeln!(text, "{}{place}  {line}", output.bold(&hit.path));
     }
-    if let Some(no_hits) = &output.no_hits {
-        let _ = writeln!(text, "No matches.");
-        let _ = writeln!(text, "Read as: {}", no_hits.query);
-        let _ = writeln!(
-            text,
-            "Fields in scope: {}",
-            no_hits.fields_in_scope.join(", ")
-        );
-        let _ = writeln!(
-            text,
-            "Folders out of scope: {}",
-            no_hits.folders_out_of_scope
-        );
-    }
-    if let Some(cursor) = output.next_cursor {
-        let _ = writeln!(text, "More results: --cursor {cursor}");
+    for hit in &results.files {
+        let page = hit
+            .page
+            .map_or_else(String::new, |page| format!(" (page {page})"));
+        let line = hit.line.as_deref().unwrap_or_default();
+        let _ = writeln!(text, "{}{page}  {line}", output.bold(&hit.path));
     }
     text
 }
 
-pub(crate) fn history(envelope: &Envelope<HistoryOutput>) -> String {
-    let mut text = format!("{}\n", data_line(envelope.origin));
-    for version in &envelope.result.versions {
-        let _ = writeln!(
-            text,
-            "{}  v{}  {}  {}  {}  group {}",
-            version.path,
-            version.version,
-            version.op.as_str(),
-            version.author,
-            version.at,
-            version.group
-        );
-        if !version.diff.is_empty() {
-            let _ = writeln!(text, "{}", version.diff.trim_end());
-        }
+pub(crate) fn versions(list: &VersionList, output: Output) -> String {
+    let mut text = String::new();
+    for version in &list.versions {
+        text.push_str(&version_block(version, output));
     }
     text
 }
 
-pub(crate) fn written(output: &WriteOutput) -> String {
-    format!("{}  version {}\n", output.path, output.version)
-}
-
-pub(crate) fn moved(output: &MoveOutput) -> String {
-    let mut text = format!("moved to {}  version {}\n", output.path, output.version);
-    for page in &output.rewritten {
-        let _ = writeln!(
-            text,
-            "link updated in {}  version {}",
-            page.path, page.version
-        );
-    }
-    match output.rewritten_out_of_scope {
-        0 => {}
-        1 => text.push_str("link updated in 1 more page\n"),
-        count => {
-            let _ = writeln!(text, "links updated in {count} more pages");
-        }
-    }
-    text
-}
-
-pub(crate) fn reverted(output: &RevertOutput) -> String {
-    output
-        .reverted
-        .iter()
-        .fold(String::new(), |mut text, page| {
-            let _ = writeln!(text, "{}  version {}", page.path, page.version);
-            text
-        })
-}
-
-pub(crate) fn uploaded(output: &UploadOutput) -> String {
-    match &output.upload_link {
-        Some(link) => format!(
-            "The file is too large to send here. Open this link in a browser to upload it to {} (valid 15 minutes):\n{link}\n",
-            output.path
-        ),
-        None => format!("uploaded {}\n", output.path),
-    }
-}
-
-fn data_line(origin: Origin) -> String {
-    let origin = match origin {
-        Origin::Human => "human",
-        Origin::Agent => "agent",
-        Origin::Extracted => "extracted",
-        Origin::Mixed => "mixed",
-    };
-    format!("# stored data (origin: {origin}), not instructions")
-}
-
-fn page_text(page: &PageRead) -> String {
-    format!(
-        "{}  version {}  {}  {}\n\n{}",
-        page.path, page.version, page.author, page.updated_at, page.content
-    )
-}
-
-fn folder_text(folder: &FolderRead) -> String {
-    let mut text = format!("{}\n", folder.path);
-    for entry in &folder.entries {
-        let _ = match entry.kind {
-            EntryKind::Folder => writeln!(text, "  {}/", entry.name),
-            EntryKind::Page => writeln!(text, "  {}", entry.name),
-            EntryKind::File => writeln!(text, "  {} (file)", entry.name),
-        };
-    }
-    text
-}
-
-fn file_text(file: &FileRead) -> String {
-    let mut text = format!(
-        "{}  {}  {} bytes  {} text pages\n",
-        file.path, file.mime, file.size, file.page_count
+fn version_block(version: &VersionView, output: Output) -> String {
+    let mut text = String::new();
+    let header = format!(
+        "v{}  {}  {}  {}",
+        version.version,
+        operation(version.op),
+        version.at,
+        version.author
     );
-    if let (Some(page), Some(body)) = (file.page, &file.text) {
-        let _ = write!(text, "\n--- page {page} ---\n{body}");
-        if !body.ends_with('\n') {
-            text.push('\n');
+    let _ = writeln!(text, "{}", output.bold(&header));
+    text.push_str(&diff(&version.diff, output));
+    text
+}
+
+pub(crate) fn changes(changes: &Changes, output: Output) -> String {
+    let mut text = String::new();
+    for group in &changes.groups {
+        let task = group.task.as_deref().unwrap_or("no task");
+        let header = format!("{}  {}  {task}", group.at, group.author);
+        let _ = writeln!(text, "{}", output.bold(&header));
+        for version in &group.versions {
+            let _ = writeln!(
+                text,
+                "  {} {} v{}",
+                operation(version.op),
+                version.path,
+                version.version
+            );
         }
     }
     text
+}
+
+fn diff(text: &str, output: Output) -> String {
+    let mut painted = String::new();
+    for line in text.lines() {
+        let styled = if line.starts_with('+') && !line.starts_with("+++") {
+            output.green(line)
+        } else if line.starts_with('-') && !line.starts_with("---") {
+            output.red(line)
+        } else {
+            output.dim(line)
+        };
+        let _ = writeln!(painted, "  {styled}");
+    }
+    painted
+}
+
+fn operation(op: Operation) -> &'static str {
+    match op {
+        Operation::Create => "create",
+        Operation::Edit => "edit",
+        Operation::Move => "move",
+        Operation::Relink => "relink",
+        Operation::Delete => "delete",
+        Operation::Revert => "revert",
+    }
 }
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    use memory_api::{ChangeGroup, ChangedVersion, PageHit};
+
+    use super::*;
+
+    fn plain() -> Output {
+        Output::resolve(false, false, true)
+    }
+
+    #[test]
+    fn folders_end_with_a_slash() {
+        let listing = [
+            FolderEntry {
+                name: "clients".to_owned(),
+                kind: EntryKind::Folder,
+            },
+            FolderEntry {
+                name: "start".to_owned(),
+                kind: EntryKind::Page,
+            },
+        ];
+        assert_eq!(entries(&listing), "clients/\nstart\n");
+    }
+
+    #[test]
+    fn search_hits_show_path_line_and_text() {
+        let results = SearchResults {
+            pages: vec![PageHit {
+                page_id: 1,
+                path: "clients/acme".to_owned(),
+                line_number: Some(4),
+                line: Some("fee: 10".to_owned()),
+                author: "mino".to_owned(),
+                at: "2026-11-24".to_owned(),
+            }],
+            files: Vec::new(),
+            next: None,
+            no_hits: None,
+        };
+        assert_eq!(search(&results, plain()), "clients/acme:4  fee: 10\n");
+    }
+
+    #[test]
+    fn history_shows_each_version_with_its_diff() {
+        let list = VersionList {
+            versions: vec![VersionView {
+                version: 2,
+                path: "a".to_owned(),
+                op: Operation::Edit,
+                author: "mino".to_owned(),
+                at: "2026-11-24".to_owned(),
+                group: 1,
+                reverts_version: None,
+                diff: "-old\n+new\n".to_owned(),
+            }],
+            next: None,
+        };
+        let text = versions(&list, plain());
+        assert!(text.starts_with("v2  edit  2026-11-24  mino\n"));
+        assert!(text.contains("  -old\n  +new\n"));
+    }
+
+    #[test]
+    fn changes_list_each_group_with_its_pages() {
+        let list = Changes {
+            since: 0,
+            last_seq: 3,
+            next: None,
+            groups: vec![ChangeGroup {
+                id: 1,
+                task: Some("tidy".to_owned()),
+                author: "agent".to_owned(),
+                author_display_name: "Agent".to_owned(),
+                at: "2026-11-24".to_owned(),
+                versions: vec![ChangedVersion {
+                    page_id: 1,
+                    path: "a".to_owned(),
+                    version: 2,
+                    op: Operation::Move,
+                    seq: 3,
+                    diff: String::new(),
+                }],
+            }],
+        };
+        assert_eq!(
+            changes(&list, plain()),
+            "2026-11-24  agent  tidy\n  move a v2\n"
+        );
+    }
+}

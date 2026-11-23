@@ -1,100 +1,141 @@
-use rmcp::transport::auth::StoredCredentials;
+use std::collections::BTreeMap;
+use std::sync::Mutex;
 
 use super::*;
 
-fn file_in(directory: &Path) -> CredentialsFile {
-    CredentialsFile {
-        path: directory.join("memory").join("credentials.json"),
+#[derive(Default)]
+struct Memory(Mutex<BTreeMap<String, String>>);
+
+impl SecretStore for Memory {
+    fn read(&self, account: &str) -> Result<Option<String>, StoreError> {
+        Ok(self.0.lock().unwrap().get(account).cloned())
+    }
+
+    fn write(&self, account: &str, secret: &str) -> Result<(), StoreError> {
+        self.0
+            .lock()
+            .unwrap()
+            .insert(account.to_owned(), secret.to_owned());
+        Ok(())
+    }
+
+    fn remove(&self, account: &str) -> Result<(), StoreError> {
+        self.0.lock().unwrap().remove(account);
+        Ok(())
     }
 }
 
-fn saved() -> Saved {
-    Saved {
-        server: "https://memory.example.com".to_owned(),
-        credentials: StoredCredentials::new("client-1".to_owned(), None, Vec::new(), Some(7)),
+struct Broken;
+
+impl SecretStore for Broken {
+    fn read(&self, _: &str) -> Result<Option<String>, StoreError> {
+        Err(StoreError::failed(std::io::Error::other("no dbus")))
+    }
+
+    fn write(&self, _: &str, _: &str) -> Result<(), StoreError> {
+        Err(StoreError::failed(std::io::Error::other("no dbus")))
+    }
+
+    fn remove(&self, _: &str) -> Result<(), StoreError> {
+        Err(StoreError::failed(std::io::Error::other("no dbus")))
+    }
+}
+
+fn tokens(access: &str) -> Tokens {
+    Tokens {
+        access_token: access.to_owned(),
+        refresh_token: Some("refresh".to_owned()),
+        expires_at: Some(100),
     }
 }
 
 #[tokio::test]
-async fn saved_credentials_read_back() {
+async fn a_working_keychain_holds_the_credentials() {
     let directory = tempfile::tempdir().unwrap();
-    let file = file_in(directory.path());
-    assert!(file.read().await.unwrap().is_none());
-    file.write(&saved()).await.unwrap();
-    let read = file.read().await.unwrap().unwrap();
-    assert_eq!(read.server, "https://memory.example.com");
-    assert_eq!(read.credentials.client_id, "client-1");
+    let vault = Vault::new(Some(Arc::new(Memory::default())), directory.path());
+    assert_eq!(
+        vault.save("https://m", &tokens("a")).await.unwrap(),
+        Saved::Keychain
+    );
+    assert_eq!(
+        vault.load("https://m").await.unwrap().unwrap().access_token,
+        "a"
+    );
+    assert!(!directory.path().join("credentials.json").exists());
+}
+
+#[tokio::test]
+async fn a_broken_keychain_falls_back_to_a_private_file() {
+    let directory = tempfile::tempdir().unwrap();
+    let vault = Vault::new(Some(Arc::new(Broken)), directory.path());
+    assert_eq!(
+        vault.save("https://m", &tokens("a")).await.unwrap(),
+        Saved::File
+    );
+    assert_eq!(
+        vault.load("https://m").await.unwrap().unwrap().access_token,
+        "a"
+    );
+    vault.delete("https://m").await.unwrap();
+    assert!(vault.load("https://m").await.unwrap().is_none());
+}
+
+#[tokio::test]
+async fn without_a_keychain_the_file_is_used() {
+    let directory = tempfile::tempdir().unwrap();
+    let vault = Vault::new(None, directory.path());
+    vault.save("https://a", &tokens("one")).await.unwrap();
+    vault.save("https://b", &tokens("two")).await.unwrap();
+    assert_eq!(
+        vault.load("https://a").await.unwrap().unwrap().access_token,
+        "one"
+    );
+    assert_eq!(
+        vault.load("https://b").await.unwrap().unwrap().access_token,
+        "two"
+    );
 }
 
 #[cfg(unix)]
 #[tokio::test]
-async fn the_credentials_file_is_private_to_the_user() {
+async fn the_credentials_file_and_its_directory_are_private() {
     use std::os::unix::fs::PermissionsExt;
-
     let directory = tempfile::tempdir().unwrap();
-    let file = file_in(directory.path());
-    file.write(&saved()).await.unwrap();
-    file.write(&saved()).await.unwrap();
-    let mode = std::fs::metadata(file.path()).unwrap().permissions().mode();
-    assert_eq!(mode & 0o777, 0o600);
+    let nested = directory.path().join("memory");
+    let vault = Vault::new(None, &nested);
+    vault.save("https://m", &tokens("a")).await.unwrap();
+    let mode = |path: &Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
+    assert_eq!(mode(&nested), 0o700);
+    assert_eq!(mode(&nested.join("credentials.json")), 0o600);
 }
 
 #[tokio::test]
-async fn a_damaged_file_asks_for_a_new_login() {
+async fn the_last_host_is_remembered() {
     let directory = tempfile::tempdir().unwrap();
-    let file = file_in(directory.path());
-    file.write(&saved()).await.unwrap();
-    tokio::fs::write(file.path(), b"{not json").await.unwrap();
-    let error = file.read().await.unwrap_err();
-    assert!(format!("{error:#}").contains("memory login"));
-}
-
-#[tokio::test]
-async fn removing_a_missing_file_is_not_an_error() {
-    let directory = tempfile::tempdir().unwrap();
-    let file = file_in(directory.path());
-    file.remove().await.unwrap();
-    file.write(&saved()).await.unwrap();
-    file.remove().await.unwrap();
-    assert!(file.read().await.unwrap().is_none());
-}
-
-#[tokio::test]
-async fn the_store_keeps_the_server_it_was_created_for() {
-    let directory = tempfile::tempdir().unwrap();
-    let file = file_in(directory.path());
-    let store = ServerStore::new(
-        file.clone(),
-        Server::parse("https://memory.example.com/mcp").unwrap(),
-    );
-    assert!(store.load().await.unwrap().is_none());
-    store.save(saved().credentials).await.unwrap();
+    let vault = Vault::new(None, directory.path());
+    assert!(vault.remembered_host().await.is_none());
+    vault.remember_host("https://m.example").await.unwrap();
     assert_eq!(
-        file.read().await.unwrap().unwrap().server,
-        "https://memory.example.com"
+        vault.remembered_host().await.as_deref(),
+        Some("https://m.example")
     );
-    assert!(store.load().await.unwrap().is_some());
-    store.clear().await.unwrap();
-    assert!(store.load().await.unwrap().is_none());
 }
 
-#[tokio::test]
-async fn refresh_guards_exclude_each_other() {
-    let directory = tempfile::tempdir().unwrap();
-    let file = file_in(directory.path());
-    let first = file.lock().await.unwrap();
-    let second = std::thread::scope(|scope| {
-        scope
-            .spawn(|| {
-                let other = std::fs::OpenOptions::new()
-                    .write(true)
-                    .open(file.path().with_extension("lock"))
-                    .unwrap();
-                other.try_lock().is_err()
-            })
-            .join()
-            .unwrap()
-    });
-    assert!(second, "a second holder must wait");
-    drop(first);
+#[test]
+fn hosts_reduce_to_their_origin() {
+    assert_eq!(
+        normalize_host("https://m.example/").unwrap(),
+        "https://m.example"
+    );
+    assert_eq!(
+        normalize_host("http://127.0.0.1:8080/x").unwrap(),
+        "http://127.0.0.1:8080"
+    );
+    assert!(normalize_host("m.example").is_err());
+    assert!(normalize_host("ftp://m.example").is_err());
+}
+
+#[test]
+fn tokens_never_print() {
+    assert_eq!(format!("{:?}", tokens("secret")), "[redacted]");
 }

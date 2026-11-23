@@ -1,179 +1,175 @@
+mod file;
+mod host;
+mod keychain;
+
+use std::fmt;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
-use anyhow::{Context, bail};
-use rmcp::transport::auth::{
-    AuthError, CredentialRefreshGuard, CredentialStore, StoredCredentials,
-};
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
-use tokio::io::AsyncWriteExt;
 
-use crate::server::Server;
+pub(crate) use file::FileStore;
+pub(crate) use host::normalize_host;
+pub(crate) use keychain::Keychain;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct Saved {
-    pub(crate) server: String,
-    pub(crate) credentials: StoredCredentials,
+const LAST_HOST_FILE: &str = "host";
+const FILE_NAME: &str = "credentials.json";
+
+#[derive(Clone, Serialize, Deserialize)]
+pub(crate) struct Tokens {
+    pub(crate) access_token: String,
+    pub(crate) refresh_token: Option<String>,
+    pub(crate) expires_at: Option<u64>,
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct CredentialsFile {
-    path: PathBuf,
+impl fmt::Debug for Tokens {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("[redacted]")
+    }
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct ServerStore {
-    file: CredentialsFile,
-    server: Server,
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum StoreError {
+    #[error("credential store failed")]
+    Failed(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
-impl CredentialsFile {
-    pub(crate) fn locate() -> anyhow::Result<Self> {
-        Ok(Self {
-            path: config_dir()?.join("memory").join("credentials.json"),
-        })
+impl StoreError {
+    pub(crate) fn failed(source: impl std::error::Error + Send + Sync + 'static) -> Self {
+        Self::Failed(Box::new(source))
+    }
+}
+
+pub(crate) trait SecretStore: Send + Sync {
+    fn read(&self, account: &str) -> Result<Option<String>, StoreError>;
+    fn write(&self, account: &str, secret: &str) -> Result<(), StoreError>;
+    fn remove(&self, account: &str) -> Result<(), StoreError>;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Saved {
+    Keychain,
+    File,
+}
+
+#[derive(Clone)]
+pub(crate) struct Vault {
+    primary: Option<Arc<dyn SecretStore>>,
+    fallback: Arc<dyn SecretStore>,
+    directory: PathBuf,
+}
+
+impl Vault {
+    pub(crate) fn system(directory: &Path) -> Self {
+        let primary = Keychain::system()
+            .ok()
+            .map(|keychain| Arc::new(keychain) as Arc<_>);
+        Self::new(primary, directory)
     }
 
-    pub(crate) fn path(&self) -> &Path {
-        &self.path
-    }
-
-    pub(crate) async fn read(&self) -> anyhow::Result<Option<Saved>> {
-        match tokio::fs::read(&self.path).await {
-            Ok(bytes) => Ok(Some(
-                serde_json::from_slice(&bytes)
-                    .context("credentials file is damaged; run `memory login` again")?,
-            )),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
-            Err(error) => Err(error).context("read credentials file"),
+    pub(crate) fn new(primary: Option<Arc<dyn SecretStore>>, directory: &Path) -> Self {
+        Self {
+            primary,
+            fallback: Arc::new(FileStore::new(directory.join(FILE_NAME))),
+            directory: directory.to_owned(),
         }
     }
 
-    pub(crate) async fn write(&self, saved: &Saved) -> anyhow::Result<()> {
-        let directory = self
-            .path
-            .parent()
-            .context("credentials path has no directory")?;
-        tokio::fs::create_dir_all(directory)
-            .await
-            .context("create config directory")?;
-        let staged = self.path.with_extension("json.tmp");
-        let mut options = tokio::fs::OpenOptions::new();
-        options.write(true).create(true).truncate(true);
-        #[cfg(unix)]
-        options.mode(0o600);
-        let mut file = options
-            .open(&staged)
-            .await
-            .context("write credentials file")?;
-        file.write_all(&serde_json::to_vec_pretty(saved)?)
-            .await
-            .context("write credentials file")?;
-        file.flush().await.context("write credentials file")?;
-        drop(file);
-        tokio::fs::rename(&staged, &self.path)
-            .await
-            .context("save credentials file")
+    pub(crate) fn directory(&self) -> &Path {
+        &self.directory
     }
 
-    pub(crate) async fn remove(&self) -> anyhow::Result<()> {
-        match tokio::fs::remove_file(&self.path).await {
-            Ok(()) => Ok(()),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(error) => Err(error).context("remove credentials file"),
+    pub(crate) async fn load(&self, host: &str) -> anyhow::Result<Option<Tokens>> {
+        let text = self.read(host).await?;
+        text.map(|text| serde_json::from_str(&text).context("read stored credentials"))
+            .transpose()
+    }
+
+    pub(crate) async fn save(&self, host: &str, tokens: &Tokens) -> anyhow::Result<Saved> {
+        let text = serde_json::to_string(tokens).context("encode credentials")?;
+        if let Some(primary) = self.primary.clone() {
+            let account = host.to_owned();
+            let secret = text.clone();
+            let stored = blocking(move || primary.write(&account, &secret)).await;
+            if matches!(stored, Ok(Ok(()))) {
+                let fallback = Arc::clone(&self.fallback);
+                let account = host.to_owned();
+                blocking(move || fallback.remove(&account)).await.ok();
+                return Ok(Saved::Keychain);
+            }
         }
+        let fallback = Arc::clone(&self.fallback);
+        let account = host.to_owned();
+        blocking(move || fallback.write(&account, &text))
+            .await?
+            .context("write credentials file")?;
+        Ok(Saved::File)
     }
 
-    async fn lock(&self) -> anyhow::Result<std::fs::File> {
-        let directory = self
-            .path
-            .parent()
-            .context("credentials path has no directory")?;
-        tokio::fs::create_dir_all(directory)
+    pub(crate) async fn delete(&self, host: &str) -> anyhow::Result<()> {
+        if let Some(primary) = self.primary.clone() {
+            let account = host.to_owned();
+            blocking(move || primary.remove(&account)).await.ok();
+        }
+        let fallback = Arc::clone(&self.fallback);
+        let account = host.to_owned();
+        blocking(move || fallback.remove(&account))
+            .await?
+            .context("remove credentials file entry")
+    }
+
+    pub(crate) async fn remember_host(&self, host: &str) -> anyhow::Result<()> {
+        tokio::fs::create_dir_all(&self.directory)
             .await
             .context("create config directory")?;
-        let path = self.path.with_extension("lock");
-        tokio::task::spawn_blocking(move || {
-            let file = std::fs::OpenOptions::new()
-                .create(true)
-                .truncate(false)
-                .write(true)
-                .open(path)?;
-            file.lock()?;
-            Ok::<_, std::io::Error>(file)
-        })
+        tokio::fs::write(self.directory.join(LAST_HOST_FILE), host)
+            .await
+            .context("remember host")
+    }
+
+    pub(crate) async fn remembered_host(&self) -> Option<String> {
+        let text = tokio::fs::read_to_string(self.directory.join(LAST_HOST_FILE))
+            .await
+            .ok()?;
+        let host = text.trim();
+        (!host.is_empty()).then(|| host.to_owned())
+    }
+
+    async fn read(&self, host: &str) -> anyhow::Result<Option<String>> {
+        if let Some(primary) = self.primary.clone() {
+            let account = host.to_owned();
+            if let Ok(Ok(Some(text))) = blocking(move || primary.read(&account)).await {
+                return Ok(Some(text));
+            }
+        }
+        let fallback = Arc::clone(&self.fallback);
+        let account = host.to_owned();
+        blocking(move || fallback.read(&account))
+            .await?
+            .context("read credentials file")
+    }
+}
+
+async fn blocking<T: Send + 'static>(
+    work: impl FnOnce() -> T + Send + 'static,
+) -> anyhow::Result<T> {
+    tokio::task::spawn_blocking(work)
         .await
-        .context("lock credentials file")?
-        .context("lock credentials file")
-    }
+        .context("credential store task")
 }
 
-impl ServerStore {
-    pub(crate) fn new(file: CredentialsFile, server: Server) -> Self {
-        Self { file, server }
-    }
-}
-
-fn store_error(error: &anyhow::Error) -> AuthError {
-    AuthError::CredentialStoreError(format!("{error:#}"))
-}
-
-#[async_trait::async_trait]
-impl CredentialStore for ServerStore {
-    async fn load(&self) -> Result<Option<StoredCredentials>, AuthError> {
-        let saved = self
-            .file
-            .read()
-            .await
-            .map_err(|error| store_error(&error))?;
-        Ok(saved.map(|saved| saved.credentials))
-    }
-
-    async fn save(&self, credentials: StoredCredentials) -> Result<(), AuthError> {
-        let saved = Saved {
-            server: self.server.origin().to_owned(),
-            credentials,
-        };
-        self.file
-            .write(&saved)
-            .await
-            .map_err(|error| store_error(&error))
-    }
-
-    async fn clear(&self) -> Result<(), AuthError> {
-        self.file
-            .remove()
-            .await
-            .map_err(|error| store_error(&error))
-    }
-
-    // Refresh tokens rotate and reuse revokes the connection, so processes must refresh one at a time.
-    async fn acquire_refresh_guard(&self) -> Result<Option<CredentialRefreshGuard>, AuthError> {
-        let file = self
-            .file
-            .lock()
-            .await
-            .map_err(|error| store_error(&error))?;
-        Ok(Some(CredentialRefreshGuard::new(file)))
-    }
-}
-
-fn config_dir() -> anyhow::Result<PathBuf> {
-    #[cfg(windows)]
-    {
-        std::env::var_os("APPDATA")
-            .map(PathBuf::from)
-            .context("APPDATA is not set")
-    }
-    #[cfg(not(windows))]
-    {
-        if let Some(dir) = std::env::var_os("XDG_CONFIG_HOME").filter(|dir| !dir.is_empty()) {
-            return Ok(PathBuf::from(dir));
-        }
-        match std::env::var_os("HOME").filter(|home| !home.is_empty()) {
-            Some(home) => Ok(PathBuf::from(home).join(".config")),
-            None => bail!("HOME is not set"),
-        }
-    }
+pub(crate) fn config_directory() -> anyhow::Result<PathBuf> {
+    let base = std::env::var_os("XDG_CONFIG_HOME")
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .or_else(|| std::env::var_os("APPDATA"))
+                .map(|home| Path::new(&home).join(".config"))
+        })
+        .context("no home directory: set XDG_CONFIG_HOME")?;
+    Ok(base.join("memory"))
 }
 
 #[cfg(test)]
