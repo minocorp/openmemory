@@ -107,7 +107,7 @@ LIMIT $2;
 - Explicit column lists; never `SELECT *` or `RETURNING *`. Adding a column must not change a result shape.
 - Values are always bound parameters (`$1`); never `format!` into SQL. Identifiers from users are never accepted; map to a fixed set in Rust.
 - Prefer `sqlx::query!` / `query_as!` (compile-time checked). `QueryBuilder` only where the shape is dynamic (the `where` grammar), pushing values with `push_bind`, fragments only from static strings.
-- Commit `.sqlx/` (`cargo sqlx prepare --workspace`) and build CI with `SQLX_OFFLINE=true`; CI also checks it is current with `cargo sqlx prepare --check`.
+- Commit `.sqlx/` (`cargo sqlx prepare --workspace -- --all-targets`, test queries included) and build CI with `SQLX_OFFLINE=true`; CI also checks it is current with `cargo sqlx prepare --check`.
 - Nullability overrides in the select list name the intent: `col AS "col!"` (never null), `col AS "col?"` (nullable).
 - `LIKE`: escape user text first (`\`, `%`, `_`), using `ESCAPE '\'`. For pg_bigm use `likequery()` or the same escaper; one shared Rust function does it.
 - Search results: always `LIMIT`; pagination by keyset (`WHERE (created_at, id) < ($1, $2)`), not `OFFSET`.

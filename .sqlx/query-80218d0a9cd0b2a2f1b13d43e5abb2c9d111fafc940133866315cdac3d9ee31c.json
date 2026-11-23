@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT group_id AS \"group_id: GroupId\" FROM page_versions WHERE page_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "group_id: GroupId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "group_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "80218d0a9cd0b2a2f1b13d43e5abb2c9d111fafc940133866315cdac3d9ee31c"
+}

@@ -73,7 +73,7 @@ CI, in this order, all with `--locked`:
 ```
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
-cargo sqlx prepare --workspace --check
+cargo sqlx prepare --workspace --check -- --all-targets
 cargo test --workspace --locked
 cargo deny check
 ```
@@ -196,7 +196,7 @@ See [`query!`](https://docs.rs/sqlx/latest/sqlx/macro.query.html), [offline mode
 
 - Use `query!`, `query_as!`, `query_scalar!` (compile-time checked) by default; unchecked `query`/`QueryBuilder` only for dynamic SQL (the `where` grammar), always with `push_bind`.
 - Never build SQL with `format!` or string concatenation.
-- Commit `.sqlx/` (`cargo sqlx prepare --workspace`) in the same PR as the query change; CI runs `--check`; builds use `SQLX_OFFLINE=true`.
+- Commit `.sqlx/` (`cargo sqlx prepare --workspace -- --all-targets`) in the same PR as the query change; CI runs `--check`; builds use `SQLX_OFFLINE=true`.
 - Only the module that owns a table touches it; queries live in that module's `queries.rs`; row structs are private and mapped to domain types.
 - Name columns; no `select *`. Fix nullability with `as "col!"` / `as "col?"` and types with `as "id: PageId"`; newtypes derive `sqlx::Type` with `#[sqlx(transparent)]`.
 - SQL is inline in the macro and follows `sql.md` (uppercase keywords, one clause per line).

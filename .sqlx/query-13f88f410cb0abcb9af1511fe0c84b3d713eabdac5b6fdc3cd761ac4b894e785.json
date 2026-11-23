@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE files SET deleted_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "13f88f410cb0abcb9af1511fe0c84b3d713eabdac5b6fdc3cd761ac4b894e785"
+}

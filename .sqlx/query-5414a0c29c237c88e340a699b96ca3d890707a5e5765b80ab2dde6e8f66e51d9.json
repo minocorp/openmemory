@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO connections (user_id, name, scopes)\nVALUES ($1, $2, ARRAY['/'])\nRETURNING id AS \"id: ConnectionId\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ConnectionId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connections",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5414a0c29c237c88e340a699b96ca3d890707a5e5765b80ab2dde6e8f66e51d9"
+}

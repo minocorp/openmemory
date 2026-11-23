@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.to_page_id AS \"id!\"\nFROM page_links AS l\nJOIN pages AS p ON p.id = l.from_page_id\nWHERE p.path = $1 AND l.to_page_id IS NOT NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "page_links",
+            "name": "to_page_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "df8211e605d3e8dc1ee0f48036c296ef1ca97e987fa0f1f707b2e633ed86814c"
+}

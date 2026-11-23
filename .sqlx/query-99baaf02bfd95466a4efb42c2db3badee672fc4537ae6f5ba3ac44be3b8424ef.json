@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE connections SET scopes = ARRAY['*']",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "99baaf02bfd95466a4efb42c2db3badee672fc4537ae6f5ba3ac44be3b8424ef"
+}

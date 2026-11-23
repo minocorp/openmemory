@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(tp.path, tf.path) AS \"path!\"\nFROM page_links AS l\nJOIN pages AS fp ON fp.id = l.from_page_id\nLEFT JOIN pages AS tp ON tp.id = l.to_page_id\nLEFT JOIN files AS tf ON tf.id = l.to_file_id\nWHERE fp.path = $1\nORDER BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "path!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e6a212ac0050995ac2c8b80611e41fc20283e0d530651daa0f4ae3e5e3659595"
+}

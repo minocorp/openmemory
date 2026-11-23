@@ -76,7 +76,7 @@ export DATABASE_URL=postgres://memory:memory@127.0.0.1:5441/memory
 cargo run -p memory-server
 ```
 
-`compose.dev.yml` runs Postgres only, on `127.0.0.1:5441`. `sqlx` macros and `#[sqlx::test]` read `DATABASE_URL`. After changing a query run `cargo sqlx prepare --workspace`.
+`compose.dev.yml` runs Postgres only, on `127.0.0.1:5441`. `sqlx` macros and `#[sqlx::test]` read `DATABASE_URL`. After changing a query run `cargo sqlx prepare --workspace -- --all-targets`.
 
 ### Web
 

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO files (path, sha256, blob_key, mime, size, user_id) VALUES ('docs/a.pdf', decode(repeat('00', 32), 'hex'), 'k', 'application/pdf', 1, $1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "05372441f39a32a271ec2056848a68e03b16262520a1b22ec96e3b30f08dad98"
+}

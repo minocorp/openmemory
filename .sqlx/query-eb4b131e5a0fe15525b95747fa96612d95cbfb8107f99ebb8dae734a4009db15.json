@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO pages (path, current_version, content) VALUES ($1, 1, 'x')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "eb4b131e5a0fe15525b95747fa96612d95cbfb8107f99ebb8dae734a4009db15"
+}

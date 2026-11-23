@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO files (path, sha256, blob_key, mime, size, user_id)\nVALUES ($1, decode(repeat('ab', 32), 'hex'), $1, 'application/pdf', 1, $2)\nRETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d125e5b6e792ae52f17cbed4a8ba38275a638819f31db6e06281ad96ce7d23ac"
+}

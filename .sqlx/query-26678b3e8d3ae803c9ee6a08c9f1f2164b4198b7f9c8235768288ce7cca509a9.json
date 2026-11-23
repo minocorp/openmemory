@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT task AS \"task!\" FROM change_groups WHERE task IS NOT NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "task!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "change_groups",
+            "name": "task"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "26678b3e8d3ae803c9ee6a08c9f1f2164b4198b7f9c8235768288ce7cca509a9"
+}

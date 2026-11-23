@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE upload_links SET created_at = now() - interval '1 hour', expires_at = now() - interval '1 second'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "3e6cd5d5cd88837d57b60aa46300e39f2cf464cc739b421aea242bca2ec3a34b"
+}

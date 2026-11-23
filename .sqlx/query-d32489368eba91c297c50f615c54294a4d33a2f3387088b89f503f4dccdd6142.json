@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE change_groups SET created_at = created_at - interval '31 minutes', last_at = last_at - interval '31 minutes'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "d32489368eba91c297c50f615c54294a4d33a2f3387088b89f503f4dccdd6142"
+}

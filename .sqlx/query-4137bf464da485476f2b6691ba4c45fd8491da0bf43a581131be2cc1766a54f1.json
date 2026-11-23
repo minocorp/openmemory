@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE upload_links SET path = 'legal/a.png'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "4137bf464da485476f2b6691ba4c45fd8491da0bf43a581131be2cc1766a54f1"
+}

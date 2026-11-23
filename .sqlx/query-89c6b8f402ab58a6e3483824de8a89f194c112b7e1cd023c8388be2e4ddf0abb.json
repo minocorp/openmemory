@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT extract(epoch FROM expires_at - created_at)::bigint AS \"seconds!\" FROM upload_links",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "seconds!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "89c6b8f402ab58a6e3483824de8a89f194c112b7e1cd023c8388be2e4ddf0abb"
+}
