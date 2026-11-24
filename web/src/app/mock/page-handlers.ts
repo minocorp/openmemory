@@ -111,7 +111,7 @@ export const pageHandlers = [
     if (!page) {
       return problem(404, "not_found");
     }
-    const before = queryOf(request, "before");
+    const before = queryOf(request, "cursor");
     const limit = Number(queryOf(request, "limit") ?? "20");
     return HttpResponse.json(versionsView(page, { limit, before: before ? Number(before) : null }));
   }),

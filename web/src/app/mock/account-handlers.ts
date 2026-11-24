@@ -102,7 +102,8 @@ export const accountHandlers = [
   http.get("/api/oauth/consents/:reference", () =>
     HttpResponse.json({
       kind: "oauth",
-      client: { client_id: "demo", name: "Claude", unverified: false },
+      audience: "mcp",
+      client: { client_id: "demo", name: "Claude", official: false, unverified: false },
       localhost_only: false,
       proposed_name: "claude-ai",
       default_scopes: ["*"],

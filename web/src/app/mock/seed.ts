@@ -40,6 +40,8 @@ function seedAccounts() {
     owner_display_name: owner === "mino" ? "Mino" : "Sam Choi",
     user_id: owner === "mino" ? 1 : 2,
     scopes,
+    audience: "mcp" as const,
+    kind: "oauth" as const,
     can_write: canWrite,
     created_at: ago(40 * day),
     last_used_at: ago(45),

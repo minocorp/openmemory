@@ -3,21 +3,21 @@ import { current, livePages, type Schemas, state } from "./store";
 
 const textDecoder = new TextDecoder();
 
-export function searchView(query: string | null): Schemas["SearchView"] {
+export function searchView(query: string | null): Schemas["SearchResults"] {
   const pages = query === null ? [] : pageHits(query);
   const files = query === null ? [] : fileHits(query);
   const isEmpty = pages.length === 0 && files.length === 0;
   return {
     pages,
     files,
-    next_cursor: null,
+    next: null,
     no_hits: isEmpty
       ? { query: query ?? "", fields_in_scope: fieldKeys(), folders_out_of_scope: 0 }
       : null,
   };
 }
 
-function pageHits(query: string): Schemas["PageHitView"][] {
+function pageHits(query: string): Schemas["PageHit"][] {
   return livePages().flatMap((page) => {
     const { path, content, author, at } = current(page);
     const lines = content.split("\n");
@@ -38,7 +38,7 @@ function pageHits(query: string): Schemas["PageHitView"][] {
   });
 }
 
-function fileHits(query: string): Schemas["FileHitView"][] {
+function fileHits(query: string): Schemas["FileHit"][] {
   return state.files.flatMap((file) => {
     const text = file.mime.startsWith("text/") ? textDecoder.decode(file.bytes) : "";
     const line = text.split("\n").find((entry) => entry.includes(query)) ?? null;

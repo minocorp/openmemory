@@ -60,7 +60,7 @@ export function treeView(): Schemas["TreeView"] {
 export function versionsView(
   page: StoredPage,
   options: { limit: number; before: number | null },
-): Schemas["VersionListView"] {
+): Schemas["VersionList"] {
   const older = page.versions
     .filter((entry) => options.before === null || entry.version < options.before)
     .toReversed();
@@ -76,11 +76,11 @@ export function versionsView(
       diff: entry.diff,
       reverts_version: entry.revertsVersion,
     })),
-    next_before: older.length > shown.length ? (shown.at(-1)?.version ?? null) : null,
+    next: older.length > shown.length ? String(shown.at(-1)?.version ?? "") : null,
   };
 }
 
-export function changesView(): Schemas["ChangesView"] {
+export function changesView(): Schemas["Changes"] {
   const unseen = state.pages.flatMap((page) =>
     page.versions
       .filter((entry) => entry.seq > state.lastSeenSeq && entry.author !== me().username)

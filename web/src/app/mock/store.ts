@@ -3,7 +3,7 @@ import { createPatch } from "diff";
 import type { components } from "@/shared/api";
 
 export type Schemas = components["schemas"];
-type Operation = Schemas["OperationView"];
+type Operation = Schemas["Operation"];
 
 export type StoredVersion = {
   version: number;
