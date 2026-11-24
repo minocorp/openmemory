@@ -41,12 +41,13 @@ fn main() -> ExitCode {
     }
 }
 
-#[tokio::main]
-async fn run(cli: Cli) -> anyhow::Result<()> {
+fn run(cli: Cli) -> anyhow::Result<()> {
     let directory = credentials::config_directory()?;
+    // The Linux keychain store starts its own runtime, which cannot happen inside ours.
+    let vault = Vault::system(&directory);
     let context = Context {
         output: Output::detect(cli.json),
-        vault: Vault::system(&directory),
+        vault,
         http: context::http_client()?,
         host: cli.host,
         token: std::env::var("MEMORY_TOKEN")
@@ -58,5 +59,5 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
             .filter(|editor| !editor.is_empty()),
         no_input: cli.no_input,
     };
-    commands::run(cli.command, &context).await
+    tokio::runtime::Runtime::new()?.block_on(commands::run(cli.command, &context))
 }
