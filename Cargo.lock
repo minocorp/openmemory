@@ -2217,7 +2217,7 @@ dependencies = [
 
 [[package]]
 name = "memory-api"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -2227,7 +2227,7 @@ dependencies = [
 
 [[package]]
 name = "memory-cli"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "apple-native-keyring-store",
@@ -2258,7 +2258,7 @@ dependencies = [
 
 [[package]]
 name = "memory-ops"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "schemars 1.2.3",
  "serde",
@@ -2271,7 +2271,7 @@ dependencies = [
 
 [[package]]
 name = "memory-server"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "axum",
