@@ -26,13 +26,13 @@ export function ResultItem({ result, index, isActive, onHover, onOpen }: ResultI
           <span className="truncate text-xs text-muted-foreground">{folder}</span>
         )}
         {result.filePage === null ? null : (
-          <span className="ml-auto shrink-0 rounded border px-1.5 text-[11px] text-muted-foreground">
+          <span className="ml-auto shrink-0 rounded-sm bg-muted px-1.5 text-xs text-muted-foreground">
             p{result.filePage}
           </span>
         )}
       </span>
       {result.line === null ? null : (
-        <span className="truncate pl-[22px] text-[13px] text-muted-foreground">{result.line}</span>
+        <span className="truncate pl-[22px] text-sm text-muted-foreground">{result.line}</span>
       )}
     </CommandItem>
   );

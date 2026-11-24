@@ -32,10 +32,10 @@ export function PageTitle({ page }: PageTitleProps) {
   };
 
   return (
-    <h1 className="mb-5">
+    <h1 className="mb-6">
       <input
         aria-label="Page title"
-        className="w-full rounded-md bg-transparent text-3xl font-bold tracking-tight outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground"
         value={draft ?? title}
         disabled={move.isPending}
         onChange={(event) => setDraft(event.target.value)}

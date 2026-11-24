@@ -53,7 +53,7 @@ export function TransferSection() {
         </SectionRow>
       </SectionList>
       {report ? (
-        <output className="grid gap-1 rounded-lg border bg-card px-3 py-2.5 text-sm">
+        <output className="grid gap-1 rounded-lg border px-3.5 py-3 text-sm">
           <p>
             Imported {report.pages} pages and {report.files} files.
             {report.skipped.length > 0 ? ` Skipped ${report.skipped.length}.` : ""}

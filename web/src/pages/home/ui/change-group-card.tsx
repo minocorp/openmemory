@@ -19,23 +19,17 @@ export function ChangeGroupCard({ group }: { group: ChangeGroup }) {
   const changes = pageChanges(group);
   const title = groupTitle(group);
   return (
-    <li className="rounded-lg border bg-background">
+    <li>
       <button
         type="button"
         aria-expanded={isOpen}
         aria-label={`${title} by ${group.author}`}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-start gap-2 rounded-lg px-3 py-2.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="flex w-full items-center gap-3 px-3.5 py-3 text-left -outline-offset-2 transition-colors first:rounded-t-lg hover:bg-accent/60"
       >
-        <ChevronRight
-          className={cn(
-            "mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform",
-            isOpen && "rotate-90",
-          )}
-        />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13.5px] font-medium">{title}</span>
-          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+          <span className="block truncate font-medium">{title}</span>
+          <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
             <AuthorBadge
               author={group.author}
               displayName={group.author_display_name}
@@ -45,18 +39,22 @@ export function ChangeGroupCard({ group }: { group: ChangeGroup }) {
             <time dateTime={group.at}>{formatRelativeTime(group.at)}</time>
           </span>
         </span>
+        <ChevronRight
+          className={cn(
+            "size-4 shrink-0 text-muted-foreground transition-transform",
+            isOpen && "rotate-90",
+          )}
+        />
       </button>
       {isOpen ? (
-        <div className="space-y-3 border-t px-3 py-3">
+        <div className="grid gap-4 px-3.5 pt-1 pb-3.5">
           {changes.map((change) => (
-            <div key={change.pageId}>
-              <p className="mb-1 flex items-baseline gap-2 text-xs">
+            <div key={change.pageId} className="grid gap-1.5">
+              <p className="flex items-baseline gap-2 text-xs">
                 <span className="truncate font-mono">{change.path}</span>
                 <span className="text-muted-foreground">{describeOperation(change.op)}</span>
               </p>
-              <div className="rounded-md border bg-card p-1.5">
-                <DiffView diff={change.diff} />
-              </div>
+              <DiffView diff={change.diff} />
             </div>
           ))}
           <RevertGroupButton groupId={group.id} />

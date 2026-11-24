@@ -16,7 +16,7 @@ export function RecoveryCodeStep({ code, onConfirm }: RecoveryCodeStepProps) {
         This code is the only way back in if you lose your passkey. It is shown once.
       </p>
       <p
-        className="rounded-lg bg-muted px-4 py-3 text-center font-mono text-[13px] select-all"
+        className="rounded-lg bg-muted px-4 py-3 text-center font-mono text-sm select-all"
         aria-label="Recovery code"
       >
         {code}

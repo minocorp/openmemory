@@ -3,6 +3,7 @@ import { FileText, MoreHorizontal } from "lucide-react";
 
 import { fileTypeLabel, formatFileSize } from "@/entities/file";
 import { baseName, parentFolder } from "@/shared/lib/page-path";
+import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +24,7 @@ export function FileRow({ file, isPathShown, onDelete }: FileRowProps) {
       <Link
         to="/p/$"
         params={{ _splat: file.path }}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-2 text-[13.5px] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-2 text-sm"
       >
         <FileText className="size-4 shrink-0 text-muted-foreground" />
         <span className="min-w-0 flex-1 truncate">
@@ -41,7 +42,7 @@ export function FileRow({ file, isPathShown, onDelete }: FileRowProps) {
       </Link>
       <DropdownMenu>
         <DropdownMenuTrigger
-          className="grid size-7 shrink-0 place-items-center rounded-md outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
+          render={<Button variant="ghost" size="icon-sm" className="shrink-0" />}
           aria-label={`Actions for ${baseName(file.path)}`}
         >
           <MoreHorizontal className="size-4" />

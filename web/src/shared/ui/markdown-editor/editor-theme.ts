@@ -2,7 +2,7 @@ import { EditorView } from "@codemirror/view";
 
 export const editorTheme = EditorView.theme({
   "&": {
-    fontSize: "15.5px",
+    fontSize: "var(--text-md)",
     color: "var(--foreground)",
     backgroundColor: "transparent",
   },
@@ -12,6 +12,7 @@ export const editorTheme = EditorView.theme({
     lineHeight: "1.75",
     padding: "0",
     caretColor: "var(--foreground)",
+    outline: "none",
   },
   ".cm-line": { padding: "0" },
   ".cm-scroller": { fontFamily: "inherit", overflow: "visible" },
@@ -79,18 +80,18 @@ export const editorTheme = EditorView.theme({
     border: "1px solid var(--border)",
     borderRadius: "8px",
     backgroundColor: "var(--popover)",
-    boxShadow: "0 8px 24px oklch(0 0 0 / 0.1)",
+    boxShadow: "var(--shadow-popover)",
     overflow: "hidden",
   },
   ".cm-tooltip.cm-tooltip-autocomplete > ul": {
     fontFamily: "var(--font-sans)",
-    fontSize: "13px",
+    fontSize: "var(--text-sm)",
     padding: "4px",
     maxHeight: "260px",
   },
   ".cm-tooltip.cm-tooltip-autocomplete > ul > li": {
-    padding: "5px 8px",
-    borderRadius: "5px",
+    padding: "6px 8px",
+    borderRadius: "6px",
     display: "flex",
     justifyContent: "space-between",
     gap: "16px",
@@ -103,7 +104,7 @@ export const editorTheme = EditorView.theme({
     color: "var(--muted-foreground)",
     fontStyle: "normal",
     fontFamily: "var(--font-mono)",
-    fontSize: "11.5px",
+    fontSize: "var(--text-xs)",
     marginLeft: "0",
   },
   ".cm-completionMatchedText": { textDecoration: "none", fontWeight: "650" },

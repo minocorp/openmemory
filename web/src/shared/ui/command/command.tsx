@@ -4,6 +4,7 @@ import { SearchIcon } from "lucide-react";
 import type * as React from "react";
 
 import { cn } from "@/shared/lib/cn";
+import { overlayStyle } from "@/shared/ui/dialog";
 
 type CommandDialogProps = {
   open: boolean;
@@ -16,10 +17,10 @@ function CommandDialog({ open, onOpenChange, label, children }: CommandDialogPro
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+        <DialogPrimitive.Backdrop className={overlayStyle} />
         <DialogPrimitive.Popup
           aria-label={label}
-          className="fixed top-0 left-1/2 z-50 flex max-h-svh w-full -translate-x-1/2 flex-col overflow-hidden bg-popover text-sm text-popover-foreground outline-none max-sm:h-svh sm:top-[12svh] sm:max-h-[min(34rem,76svh)] sm:max-w-xl sm:rounded-xl sm:ring-1 sm:ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
+          className="fixed top-0 left-1/2 z-50 flex max-h-svh w-full -translate-x-1/2 flex-col overflow-hidden bg-popover text-sm text-popover-foreground transition-opacity duration-100 outline-none data-ending-style:opacity-0 data-starting-style:opacity-0 max-sm:h-svh sm:top-[12svh] sm:max-h-[min(34rem,76svh)] sm:max-w-xl sm:rounded-xl sm:border sm:shadow-modal"
         >
           <DialogPrimitive.Title className="sr-only">{label}</DialogPrimitive.Title>
           {children}
@@ -46,7 +47,7 @@ function CommandInput({
         autoComplete="off"
         spellCheck={false}
         className={cn(
-          "h-12 w-full bg-transparent text-[15px] outline-none placeholder:text-muted-foreground",
+          "h-12 w-full bg-transparent text-md outline-none placeholder:text-muted-foreground",
           className,
         )}
         {...props}
@@ -74,7 +75,7 @@ type CommandGroupProps = {
 function CommandGroup({ heading, children }: CommandGroupProps) {
   return (
     <div role="group" aria-label={heading} className="pb-1">
-      <p aria-hidden className="px-2.5 pt-2 pb-1 text-xs font-medium text-muted-foreground">
+      <p aria-hidden className="px-2 pt-2 pb-1 text-xs text-muted-foreground">
         {heading}
       </p>
       {children}
@@ -90,7 +91,7 @@ function CommandItem({ className, isActive, ...props }: CommandItemProps) {
       role="option"
       aria-selected={isActive}
       className={cn(
-        "flex cursor-default flex-col gap-0.5 rounded-lg px-2.5 py-2 select-none aria-selected:bg-accent max-sm:py-3",
+        "flex cursor-default flex-col gap-0.5 rounded-md px-2 py-2 select-none aria-selected:bg-accent max-sm:py-3",
         className,
       )}
       {...props}
@@ -101,7 +102,7 @@ function CommandItem({ className, isActive, ...props }: CommandItemProps) {
 function CommandMessage({ className, ...props }: React.ComponentProps<"output">) {
   return (
     <output
-      className={cn("block px-4 py-8 text-center text-[13px] text-muted-foreground", className)}
+      className={cn("block px-4 py-8 text-center text-sm text-muted-foreground", className)}
       {...props}
     />
   );

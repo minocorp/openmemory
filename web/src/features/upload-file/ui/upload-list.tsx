@@ -14,9 +14,9 @@ export function UploadList({ items, onDismiss }: UploadListProps) {
     return null;
   }
   return (
-    <ul aria-label="Uploads" className="grid gap-2 rounded-lg border bg-background p-3">
+    <ul aria-label="Uploads" className="grid gap-2.5 rounded-lg border px-3.5 py-3">
       {items.map((item) => (
-        <li key={item.id} className="grid gap-1 text-[13px]">
+        <li key={item.id} className="grid gap-1 text-sm">
           <div className="flex items-center gap-2">
             <StateIcon state={item.state} />
             <span className="min-w-0 flex-1 truncate">{item.path}</span>

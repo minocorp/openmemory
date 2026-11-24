@@ -101,7 +101,7 @@ export function FilesPage({ search, onSearchChange }: FilesPageProps) {
         </div>
       </div>
       {isDragging ? (
-        <div className="pointer-events-none absolute inset-3 grid place-items-center rounded-xl border-2 border-dashed border-ring bg-background/80 text-sm">
+        <div className="pointer-events-none absolute inset-3 grid place-items-center rounded-lg border border-dashed border-ring bg-background/90 text-sm">
           Drop files to upload to {search.folder === "" ? "Files" : search.folder}
         </div>
       ) : null}

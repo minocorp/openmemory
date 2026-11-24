@@ -37,7 +37,7 @@ export function SelectionToolbar({ position, onInline, onHeading, onLink }: Sele
     <div
       role="toolbar"
       aria-label="Text formatting"
-      className="absolute z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border bg-popover p-1 shadow-md"
+      className="absolute z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border bg-popover p-1 shadow-popover"
       style={{ top: position.top, left: position.left }}
     >
       <ToolbarButton label="Bold" onPress={() => onInline("bold")}>

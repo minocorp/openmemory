@@ -1,29 +1,44 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { LogOut } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { ChevronsUpDown, LogOut, Settings } from "lucide-react";
 
 import { meQuery } from "@/entities/user";
 import { AuthorBadge } from "@/entities/version";
 import { useSignOut } from "@/features/passkey-auth";
+import { cn } from "@/shared/lib/cn";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+
+import { rowStyle } from "../config/row-style";
 
 export function UserMenu() {
   const { data: me } = useSuspenseQuery(meQuery());
   const signOut = useSignOut();
+  const navigate = useNavigate();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-[13.5px] outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        className={cn(rowStyle, "h-8 px-2 aria-expanded:bg-sidebar-accent")}
         aria-label="Account menu"
       >
-        <AuthorBadge author={me.username} displayName={me.display_name} />
+        <AuthorBadge
+          author={me.username}
+          displayName={me.display_name}
+          className="flex-1 font-medium"
+        />
+        <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" side="top">
+      <DropdownMenuContent align="start" side="top" className="w-(--anchor-width)">
+        <DropdownMenuItem onClick={() => void navigate({ to: "/settings" })}>
+          <Settings /> Settings
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => signOut.mutate()}>
           <LogOut /> Sign out
         </DropdownMenuItem>

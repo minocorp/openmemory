@@ -71,7 +71,7 @@ function Side({ title, meta, lines }: SideProps) {
   return (
     <section aria-label={title} className="min-w-0 rounded-lg border">
       <header className="flex h-9 items-center justify-between border-b px-3 text-xs">
-        <h3 className="font-semibold">{title}</h3>
+        <h3 className="font-medium">{title}</h3>
         <span className="text-muted-foreground">{meta}</span>
       </header>
       <div className="max-h-80 overflow-auto p-2 font-mono text-xs leading-6">

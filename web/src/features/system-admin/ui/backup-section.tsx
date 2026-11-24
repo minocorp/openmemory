@@ -20,7 +20,7 @@ export function BackupSection() {
       {warnings.length > 0 ? (
         <div
           role="alert"
-          className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+          className="flex gap-2 rounded-lg bg-destructive/8 px-3.5 py-3 text-sm text-destructive"
         >
           <TriangleAlert className="mt-0.5 size-4 shrink-0" />
           <ul className="grid gap-1">

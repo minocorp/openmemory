@@ -7,7 +7,7 @@ type FilesBreadcrumbProps = { folder: string };
 export function FilesBreadcrumb({ folder }: FilesBreadcrumbProps) {
   const trail = folder === "" ? [] : ancestorFolders(`${folder}/x`);
   return (
-    <nav aria-label="Folder" className="flex min-w-0 items-center gap-1.5 text-[13px]">
+    <nav aria-label="Folder" className="flex min-w-0 items-center gap-1.5 text-sm">
       {folder === "" ? (
         <span className="font-medium">Files</span>
       ) : (

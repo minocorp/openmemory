@@ -65,7 +65,7 @@ export function ConsentForm({ reference, consent, onDecided }: ConsentFormProps)
           aria-invalid={nameProblem !== null}
         />
         {nameProblem && name !== "" ? (
-          <p className="text-[13px] text-destructive">{nameMessages[nameProblem]}</p>
+          <p className="text-sm text-destructive">{nameMessages[nameProblem]}</p>
         ) : null}
       </div>
       <div className="grid gap-2">

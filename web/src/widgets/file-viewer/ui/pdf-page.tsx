@@ -84,7 +84,7 @@ export function PdfPage({ url, page, quote }: PdfPageProps) {
     <div className="p-4">
       <div
         ref={frameRef}
-        className="relative mx-auto w-fit bg-white shadow-sm"
+        className="relative mx-auto w-fit border bg-white"
         data-testid="pdf-frame"
       >
         <canvas ref={canvasRef}>Page {page} of the file</canvas>

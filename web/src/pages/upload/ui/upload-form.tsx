@@ -63,7 +63,7 @@ export function UploadForm({ token, path }: UploadFormProps) {
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         className={cn(
-          "grid justify-items-center gap-3 rounded-xl border border-dashed border-ring/60 p-8 text-sm text-muted-foreground",
+          "grid justify-items-center gap-3 rounded-lg border border-dashed border-input p-8 text-sm text-muted-foreground",
           isDragging && "border-ring bg-accent/50",
         )}
       >

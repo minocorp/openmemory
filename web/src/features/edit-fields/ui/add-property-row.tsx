@@ -60,18 +60,18 @@ export function AddPropertyRow({ existingKeys, isSaving, onAdd }: AddPropertyRow
           ref={focusOnMount}
           aria-label="Field name"
           placeholder="name"
-          className="h-7 font-mono text-[12.5px]"
+          className="font-mono md:h-7 md:text-xs"
           value={key}
           aria-invalid={keyProblem !== null}
           onChange={(event) => setKey(event.target.value)}
           onKeyDown={(event) => event.key === "Escape" && close()}
         />
-        {keyProblem ? <p className="text-[11px] text-destructive">{keyProblem}</p> : null}
+        {keyProblem ? <p className="text-xs text-destructive">{keyProblem}</p> : null}
       </div>
       <Input
         aria-label="Field value"
         placeholder="value"
-        className="h-7 flex-1 text-[13.5px]"
+        className="flex-1 md:h-7"
         value={value}
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={(event) => event.key === "Escape" && close()}

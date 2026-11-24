@@ -9,7 +9,7 @@ export function FolderRow({ path, name, fileCount }: FolderRowProps) {
       <Link
         to="/files"
         search={{ folder: path, q: "" }}
-        className="flex items-center gap-3 rounded-md px-2 py-2 pr-9 text-[13.5px] outline-none hover:bg-accent/60 focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="flex items-center gap-3 rounded-md px-2 py-2 pr-9 text-sm hover:bg-accent/60"
       >
         <Folder className="size-4 shrink-0 text-muted-foreground" />
         <span className="min-w-0 flex-1 truncate">{name}</span>
