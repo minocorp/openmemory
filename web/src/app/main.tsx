@@ -11,6 +11,11 @@ if (!rootElement) {
   throw new Error("Missing #root element");
 }
 
+if (import.meta.env.MODE === "mock") {
+  const { startMockApi } = await import("./mock");
+  await startMockApi();
+}
+
 createRoot(rootElement).render(
   <StrictMode>
     <Providers />

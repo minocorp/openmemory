@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "vite --mode mock",
     "build": "vite build",
     "gen:openapi": "SQLX_OFFLINE=true cargo run --locked -q -p memory-server -- openapi > openapi.json.tmp && mv openapi.json.tmp openapi.json",
     "gen:types": "pnpm --dir tools/openapi-codegen exec openapi-typescript ../../openapi.json --empty-objects-unknown -o ../../src/shared/api/schema.d.ts",
