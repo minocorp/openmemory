@@ -108,4 +108,4 @@ cd web && pnpm exec playwright install chromium && pnpm e2e
 
 ## Release
 
-Set `version` in the root `Cargo.toml`, merge, then publish a GitHub release tagged `v<version>`. The release workflow refuses a tag that does not match and attaches the CLI binaries and images.
+Set `version` in the root `Cargo.toml` and regenerate `web/openapi.json` (`cargo run -p memory-server -- openapi > web/openapi.json`), merge, then publish a GitHub release tagged `v<version>`. The release workflow refuses a tag that does not match and attaches the CLI binaries and images.
