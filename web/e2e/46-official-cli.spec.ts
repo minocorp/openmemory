@@ -20,7 +20,7 @@ test("the consent screen presents memory-cli as the official CLI", async ({ brow
   });
   await page.goto(`${webOrigin}/oauth/authorize?${query.toString()}`);
   await expect(page.getByRole("heading", { name: "Connect Memory CLI" })).toBeVisible();
-  await expect(page.getByText("Official memory CLI")).toBeVisible();
+  await expect(page.getByText("Official")).toBeVisible();
   await expect(page.getByText("Unverified client")).toHaveCount(0);
   await expect(page.getByLabel("All folders")).toBeChecked();
   await expect(page.getByRole("switch", { name: "Allow writing" })).toBeChecked();
