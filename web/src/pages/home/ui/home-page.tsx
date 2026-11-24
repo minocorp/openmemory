@@ -16,13 +16,13 @@ export function HomePage() {
   return (
     <div className="flex h-full flex-col">
       <header className="flex h-12 shrink-0 items-center justify-between border-b px-4 sm:px-6">
-        <h1 className="text-[13px] font-medium">Home</h1>
-        <Button variant="outline" size="sm" onClick={openSearch}>
+        <h1 className="text-sm font-medium">Home</h1>
+        <Button variant="ghost" size="sm" className="-mr-2 sm:hidden" onClick={openSearch}>
           <Search /> Search
         </Button>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-2xl space-y-8 px-4 py-8 sm:py-10">
+        <div className="mx-auto grid max-w-2xl gap-10 px-4 py-8 sm:px-6 sm:py-12">
           <Suspense fallback={<FeedSkeleton />}>
             <HomeContent />
           </Suspense>
@@ -39,16 +39,14 @@ function HomeContent() {
     <>
       {start.exists ? null : <FirstRunPanel />}
       <section aria-label="Changes since you last looked">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[13px] font-medium">Changes since you last looked</h2>
+        <div className="mb-3 flex min-h-7 items-center justify-between">
+          <h2 className="text-sm font-medium">Changes since you last looked</h2>
           {changes.groups.length > 0 ? <MarkAllSeen seq={changes.last_seq} /> : null}
         </div>
         {changes.groups.length === 0 ? (
-          <p className="rounded-lg border border-dashed px-4 py-8 text-center text-[13px] text-muted-foreground">
-            Nothing new.
-          </p>
+          <p className="text-sm text-muted-foreground">Nothing new.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="divide-y rounded-lg border">
             {changes.groups.map((group) => (
               <ChangeGroupCard key={group.id} group={group} />
             ))}
@@ -61,10 +59,9 @@ function HomeContent() {
 
 function FeedSkeleton() {
   return (
-    <div className="space-y-3">
-      <Skeleton className="h-5 w-48" />
-      <Skeleton className="h-16" />
-      <Skeleton className="h-16" />
+    <div className="grid gap-3">
+      <Skeleton className="h-4 w-48" />
+      <Skeleton className="h-28" />
     </div>
   );
 }

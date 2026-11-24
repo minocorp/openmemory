@@ -37,26 +37,26 @@ export function PageHeader({ page, unseen, onOpenHistory, onOpenChanges }: PageH
   const { data: me } = useQuery(meQuery());
   const folders = splitPath(parentFolder(page.path));
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b px-4 text-[13px] sm:px-6">
+    <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b px-4 text-sm sm:px-6">
       <p className="min-w-0 truncate text-muted-foreground">
         {folders.map((folder) => `${folder} / `)}
-        <span className="font-medium text-foreground">{splitPath(page.path).at(-1)}</span>
+        <span className="text-foreground">{splitPath(page.path).at(-1)}</span>
       </p>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1">
         {unseen ? (
           <ChangesIndicator unseen={unseen} onOpen={onOpenChanges} />
         ) : (
-          <span className="flex items-center gap-2 text-muted-foreground max-sm:hidden">
+          <span className="mr-2 flex items-center gap-2 text-muted-foreground max-sm:hidden">
             <AuthorBadge author={page.author} className="text-foreground" />
             <time dateTime={page.updated_at}>{formatRelativeTime(page.updated_at)}</time>
           </span>
         )}
-        <Button variant="outline" size="sm" aria-label="History" onClick={onOpenHistory}>
+        <Button variant="ghost" size="sm" aria-label="History" onClick={onOpenHistory}>
           <History /> <span className="max-sm:hidden">History</span>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger
-            className="grid size-7 place-items-center rounded-md outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
+            render={<Button variant="ghost" size="icon-sm" />}
             aria-label="Page actions"
           >
             <MoreHorizontal className="size-4" />

@@ -24,7 +24,7 @@ export function FolderPicker({ folders, value, onChange }: FolderPickerProps) {
     onChange(isChecked ? [...value, folder] : value.filter((entry) => entry !== folder));
 
   return (
-    <fieldset className="grid gap-2 text-[13.5px]">
+    <fieldset className="grid gap-2 text-sm">
       <legend className="sr-only">Folders</legend>
       <label className="flex items-center gap-2">
         <input

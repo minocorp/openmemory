@@ -15,7 +15,7 @@ export function MobileTabs() {
   return (
     <nav
       aria-label="Sections"
-      className="flex shrink-0 border-t bg-sidebar pb-[env(safe-area-inset-bottom)] sm:hidden"
+      className="flex shrink-0 border-t bg-background pb-[env(safe-area-inset-bottom)] sm:hidden"
     >
       {tabs.map(({ to, label, icon: Icon }) => (
         <Link
@@ -23,8 +23,8 @@ export function MobileTabs() {
           to={to}
           activeOptions={{ exact: to === "/" }}
           className={cn(
-            "flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] text-muted-foreground",
-            isTabActive(to, pathname) && "font-semibold text-foreground",
+            "flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-muted-foreground",
+            isTabActive(to, pathname) && "font-medium text-foreground",
           )}
         >
           <Icon className="size-5" />

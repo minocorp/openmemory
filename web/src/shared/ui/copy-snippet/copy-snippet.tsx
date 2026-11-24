@@ -17,7 +17,7 @@ export function CopySnippet({ label, text }: CopySnippetProps) {
   }
 
   return (
-    <div className="flex items-start gap-2 rounded-md border bg-card py-1.5 pr-1.5 pl-3">
+    <div className="flex items-start gap-2 rounded-md bg-muted py-1 pr-1 pl-3">
       <pre
         aria-label={label}
         className="min-w-0 flex-1 overflow-x-auto py-1 font-mono text-xs leading-5"

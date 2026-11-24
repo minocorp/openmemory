@@ -54,7 +54,7 @@ export function PageScreen({ id, search, onSearchChange }: PageScreenProps) {
           onOpenChanges={() => onSearchChange({ ...search, changes: true })}
         />
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <article className="mx-auto w-full max-w-[688px] px-4 pt-6 pb-32 sm:px-6 sm:pt-12">
+          <article className="mx-auto w-full max-w-2xl px-4 pt-8 pb-32 sm:px-6 sm:pt-14">
             <PageTitle key={page.path} page={page} />
             {unseen && isViewingChanges ? (
               <ChangesNote
@@ -90,7 +90,7 @@ export function PageScreen({ id, search, onSearchChange }: PageScreenProps) {
       </div>
       {search.file ? (
         <aside
-          className="w-[420px] shrink-0 border-l bg-card max-sm:fixed max-sm:inset-0 max-sm:z-40 max-sm:w-auto max-sm:border-l-0"
+          className="w-105 shrink-0 border-l bg-background max-sm:fixed max-sm:inset-0 max-sm:z-40 max-sm:w-auto max-sm:border-l-0"
           aria-label="Source file"
         >
           <SourcePanel search={search} onSearchChange={onSearchChange} path={search.file} />

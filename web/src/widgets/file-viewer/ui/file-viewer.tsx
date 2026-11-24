@@ -33,7 +33,7 @@ export function FileViewer({ file, page, quote, onPageChange, onClose }: FileVie
   return (
     <section aria-label={`File ${file.path}`} className="flex h-full min-h-0 flex-col">
       <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b px-4">
-        <h2 className="min-w-0 truncate text-sm font-semibold" title={file.path}>
+        <h2 className="min-w-0 truncate text-sm font-medium" title={file.path}>
           {baseName(file.path)}
         </h2>
         <div className="flex items-center gap-1">
@@ -78,7 +78,7 @@ export function FileViewer({ file, page, quote, onPageChange, onClose }: FileVie
           ) : null}
         </div>
       </header>
-      <div className="min-h-0 flex-1 overflow-auto bg-muted/60">
+      <div className="min-h-0 flex-1 overflow-auto bg-muted">
         {isPdf ? <PdfPage url={fileContentUrl(file.id)} page={current} quote={quote} /> : null}
         {file.mime.startsWith("image/") ? (
           <img
@@ -106,7 +106,7 @@ function TextContent({ id, quote }: { id: number; quote: string | null }) {
   const { data: text } = useSuspenseQuery(fileTextQuery(id));
   const start = quote ? text.indexOf(quote) : -1;
   return (
-    <pre className="m-4 rounded-md bg-white p-4 font-mono text-xs leading-6 break-words whitespace-pre-wrap">
+    <pre className="m-4 rounded-md border bg-background p-4 font-mono text-xs leading-6 break-words whitespace-pre-wrap">
       {start === -1 || !quote ? (
         text
       ) : (
@@ -131,7 +131,7 @@ function FileMenu({ file }: { file: FileInfo }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger
-          className="grid size-7 place-items-center rounded-md outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
+          render={<Button variant="ghost" size="icon-sm" />}
           aria-label="File actions"
         >
           <MoreHorizontal className="size-4" />

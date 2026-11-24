@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Plus, Search } from "lucide-react";
+import { Folder, Home, Plus, Search } from "lucide-react";
 import { Suspense, useState } from "react";
 
 import { buildTreeNodes, treeQuery } from "@/entities/tree";
@@ -11,6 +11,7 @@ import { openSearch } from "@/shared/lib/search-palette";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 
+import { rowStyle } from "../config/row-style";
 import { revealSelection, type FolderOverrides } from "../model/folder-state";
 import { TreeItem } from "./tree-item";
 import { UserMenu } from "./user-menu";
@@ -22,10 +23,7 @@ type TreePanelProps = {
 
 export function SidebarTree() {
   return (
-    <TreePanel
-      className="hidden h-svh w-[248px] shrink-0 border-r bg-sidebar sm:flex"
-      hasUserMenu
-    />
+    <TreePanel className="hidden h-svh w-62 shrink-0 border-r bg-sidebar sm:flex" hasUserMenu />
   );
 }
 
@@ -52,39 +50,32 @@ function TreePanel({ className, hasUserMenu = false }: TreePanelProps) {
 
   return (
     <aside className={cn("flex flex-col", className)}>
-      <div className="flex items-center justify-between px-3 pt-3.5 pb-2">
-        <span className="px-2 text-sm font-semibold">Memory</span>
+      <div className="flex h-12 shrink-0 items-center justify-between pr-2 pl-4">
+        <span className="text-sm font-semibold tracking-tight">Memory</span>
         <Button
           variant="ghost"
           size="icon-sm"
+          className="text-muted-foreground hover:text-foreground"
           aria-label="New page"
           onClick={() => setIsCreating(true)}
         >
           <Plus />
         </Button>
       </div>
-      <div className="px-3 pb-2">
+      <div className="px-2 pb-2">
         <SearchButton />
       </div>
-      <nav aria-label="Pages and files" className="flex min-h-0 flex-1 flex-col px-2">
-        {hasUserMenu ? (
-          <Link
-            to="/"
-            activeOptions={{ exact: true }}
-            className="mb-1 flex items-center gap-2 rounded-md px-2 py-[5px] text-[13.5px] hover:bg-sidebar-accent [&.active]:bg-sidebar-accent [&.active]:font-semibold"
-          >
-            <Home className="size-3.5 text-muted-foreground" /> Home
-          </Link>
-        ) : null}
-        <div className="min-h-0 flex-1 overflow-y-auto pb-4">
+      <nav aria-label="Pages and files" className="flex min-h-0 flex-1 flex-col">
+        {hasUserMenu ? <SectionLinks /> : null}
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pt-1 pb-4">
           <Suspense fallback={<TreeSkeleton />}>
             <TreeNodes selectedPath={selectedPath} overrides={overrides} onToggle={toggleFolder} />
           </Suspense>
         </div>
       </nav>
       {hasUserMenu ? (
-        <div className="border-t p-2">
-          <Suspense fallback={<Skeleton className="h-7" />}>
+        <div className="p-2">
+          <Suspense fallback={<Skeleton className="h-8" />}>
             <UserMenu />
           </Suspense>
         </div>
@@ -99,16 +90,30 @@ function TreePanel({ className, hasUserMenu = false }: TreePanelProps) {
   );
 }
 
+function SectionLinks() {
+  const linkStyle = cn(rowStyle, "px-2 [&.active]:bg-sidebar-accent [&.active]:font-medium");
+  return (
+    <div className="grid gap-px px-2 pb-2">
+      <Link to="/" activeOptions={{ exact: true }} className={linkStyle}>
+        <Home className="size-4 text-muted-foreground" /> Home
+      </Link>
+      <Link to="/files" activeOptions={{ includeSearch: false }} className={linkStyle}>
+        <Folder className="size-4 text-muted-foreground" /> Files
+      </Link>
+    </div>
+  );
+}
+
 function SearchButton() {
   return (
     <button
       type="button"
       onClick={openSearch}
-      className="flex h-8 w-full items-center gap-2 rounded-lg border bg-background px-2.5 text-[13px] text-muted-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="flex h-8 w-full items-center gap-2 rounded-md border bg-background px-2 text-sm text-muted-foreground transition-colors hover:border-input hover:text-foreground"
     >
-      <Search className="size-3.5" />
+      <Search className="size-4" />
       <span className="flex-1 text-left">Search</span>
-      <kbd className="rounded border px-1 text-[11px] max-sm:hidden">⌘K</kbd>
+      <kbd className="font-sans text-xs text-muted-foreground max-sm:hidden">⌘K</kbd>
     </button>
   );
 }
@@ -129,10 +134,10 @@ function TreeNodes({ selectedPath, overrides, onToggle }: TreeNodesProps) {
   const nodes = buildTreeNodes(tree);
 
   if (nodes.length === 0) {
-    return <p className="px-2 py-3 text-sm text-muted-foreground">No pages yet.</p>;
+    return <p className="px-2 py-1.5 text-sm text-muted-foreground">No pages yet.</p>;
   }
   return (
-    <ul>
+    <ul className="grid gap-px">
       {nodes.map((node) => (
         <TreeItem
           key={`${node.kind}:${node.path}`}
@@ -149,10 +154,10 @@ function TreeNodes({ selectedPath, overrides, onToggle }: TreeNodesProps) {
 
 function TreeSkeleton() {
   return (
-    <div className="grid gap-2 px-2 py-2">
-      <Skeleton className="h-4 w-24" />
-      <Skeleton className="h-4 w-32" />
-      <Skeleton className="h-4 w-20" />
+    <div className="grid gap-2.5 px-2 py-1.5">
+      <Skeleton className="h-3.5 w-24" />
+      <Skeleton className="h-3.5 w-32" />
+      <Skeleton className="h-3.5 w-20" />
     </div>
   );
 }

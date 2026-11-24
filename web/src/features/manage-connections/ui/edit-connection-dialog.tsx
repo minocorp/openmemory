@@ -47,7 +47,7 @@ export function EditConnectionDialog({ connection, onClose }: EditConnectionDial
             />
           </div>
           <FolderPicker folders={folders} value={scopes} onChange={setScopes} />
-          <div className="flex items-center justify-between gap-2 text-[13.5px]">
+          <div className="flex items-center justify-between gap-2 text-sm">
             <span>Can write</span>
             <Switch aria-label="Can write" checked={canWrite} onCheckedChange={setCanWrite} />
           </div>

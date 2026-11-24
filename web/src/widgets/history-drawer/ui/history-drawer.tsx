@@ -5,6 +5,7 @@ import { versionsQuery, type Page } from "@/entities/page";
 import { AuthorBadge, describeOperation, type Version } from "@/entities/version";
 import { RestoreDialog } from "@/features/restore-version";
 import { formatRelativeTime } from "@/shared/lib/relative-time";
+import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { DiffView } from "@/shared/ui/diff-view";
 import { ScrollArea } from "@/shared/ui/scroll-area";
@@ -40,9 +41,9 @@ export function HistoryDrawer({ page, onClose }: HistoryDrawerProps) {
               Every save is a version. Restoring adds a new version; nothing is lost.
             </SheetDescription>
           </SheetHeader>
-          <ScrollArea className="min-h-0 flex-1 px-4">
-            {versions.isPending ? <Skeleton className="h-24" /> : null}
-            <ol className="grid gap-3 pb-6">
+          <ScrollArea className="min-h-0 flex-1">
+            {versions.isPending ? <Skeleton className="m-5 h-24" /> : null}
+            <ol className="divide-y border-b">
               {versions.data?.pages
                 .flatMap((chunk) => chunk.versions)
                 .map((version) => (
@@ -58,9 +59,9 @@ export function HistoryDrawer({ page, onClose }: HistoryDrawerProps) {
             </ol>
             {versions.hasNextPage ? (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="mb-6"
+                className="mx-3 my-3 text-muted-foreground"
                 disabled={versions.isFetchingNextPage}
                 onClick={() => void versions.fetchNextPage()}
               >
@@ -87,17 +88,15 @@ type VersionRowProps = {
 
 function VersionRow({ version, isCurrent, isExpanded, onToggle, onRestore }: VersionRowProps) {
   return (
-    <li className="rounded-lg border">
-      <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+    <li>
+      <div className="flex items-center justify-between gap-3 px-5 py-3">
         <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-x-2 text-sm">
-            <span className="font-medium">v{version.version}</span>
+          <p className="flex flex-wrap items-center gap-x-2">
+            <span className="font-medium tabular-nums">v{version.version}</span>
             <span className="text-muted-foreground">{describeOperation(version)}</span>
-            {isCurrent ? (
-              <span className="rounded bg-secondary px-1.5 text-[11px] font-medium">Current</span>
-            ) : null}
+            {isCurrent ? <Badge>Current</Badge> : null}
           </p>
-          <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+          <p className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
             <AuthorBadge author={version.author} />
             <time dateTime={version.at}>{formatRelativeTime(version.at)}</time>
           </p>
@@ -106,6 +105,7 @@ function VersionRow({ version, isCurrent, isExpanded, onToggle, onRestore }: Ver
           <Button
             variant="ghost"
             size="sm"
+            className="text-muted-foreground hover:text-foreground"
             aria-expanded={isExpanded}
             aria-label={`${isExpanded ? "Hide" : "Show"} changes in version ${version.version}`}
             onClick={onToggle}
@@ -125,7 +125,7 @@ function VersionRow({ version, isCurrent, isExpanded, onToggle, onRestore }: Ver
         </div>
       </div>
       {isExpanded ? (
-        <div className="border-t p-2">
+        <div className="px-5 pb-4">
           <DiffView diff={version.diff} />
         </div>
       ) : null}

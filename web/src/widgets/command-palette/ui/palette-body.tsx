@@ -103,7 +103,7 @@ export function PaletteBody({ onClose }: PaletteBodyProps) {
           <button
             type="button"
             onClick={onClose}
-            className="-mr-2 hidden h-9 shrink-0 rounded-md px-2 text-[13px] text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 max-sm:block"
+            className="-mr-2 hidden h-9 shrink-0 rounded-md px-2 text-sm text-muted-foreground hover:text-foreground max-sm:block"
           >
             Cancel
           </button>
@@ -157,7 +157,7 @@ function PaletteStatus({
         <p>Text, a path, or a field condition:</p>
         <p className="mt-2 flex flex-wrap gap-1.5">
           {syntaxExamples.map((example) => (
-            <code key={example} className="rounded border px-1.5 py-0.5 font-mono text-xs">
+            <code key={example} className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs">
               {example}
             </code>
           ))}

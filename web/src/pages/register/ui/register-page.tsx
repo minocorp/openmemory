@@ -10,7 +10,7 @@ export function RegisterPage({ token }: RegisterPageProps) {
     return (
       <main className="flex min-h-svh items-center justify-center p-6">
         <div className="max-w-sm">
-          <h1 className="text-xl font-semibold">This invite link is incomplete</h1>
+          <h1 className="text-xl font-semibold tracking-tight">This invite link is incomplete</h1>
           <p className="mt-2 text-sm text-muted-foreground">Ask for a new invite link.</p>
         </div>
       </main>

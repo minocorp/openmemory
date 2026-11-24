@@ -38,10 +38,7 @@ export function PropertyRow({ field, isChanged, isSaving, onSave }: PropertyRowP
 
   return (
     <div className="group/row col-span-2 grid grid-cols-subgrid items-center">
-      <dt
-        className="max-w-56 truncate font-mono text-[12.5px] text-muted-foreground"
-        title={field.key}
-      >
+      <dt className="max-w-56 truncate font-mono text-xs text-muted-foreground" title={field.key}>
         {field.key}
       </dt>
       <dd className="flex min-w-0 items-center gap-1">
@@ -50,7 +47,7 @@ export function PropertyRow({ field, isChanged, isSaving, onSave }: PropertyRowP
             type="button"
             aria-label={`Edit ${field.key}`}
             className={cn(
-              "min-h-7 min-w-0 flex-1 rounded-md px-2 py-0.5 text-left text-[13.5px] break-words hover:bg-accent",
+              "min-h-7 min-w-0 flex-1 rounded-md px-2 py-0.5 text-left text-sm break-words hover:bg-accent",
               isChanged && "bg-highlight hover:bg-highlight",
             )}
             disabled={isSaving}
@@ -62,7 +59,7 @@ export function PropertyRow({ field, isChanged, isSaving, onSave }: PropertyRowP
           <Input
             ref={focusOnMount}
             aria-label={field.key}
-            className="h-7 flex-1 text-[13.5px]"
+            className="flex-1 md:h-7"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onBlur={commit}

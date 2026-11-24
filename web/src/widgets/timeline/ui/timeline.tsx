@@ -17,11 +17,8 @@ type TimelineProps = {
 export function Timeline({ page, changedLines, openFile, onOpenSource }: TimelineProps) {
   const entries = page.timeline.toReversed();
   return (
-    <section aria-labelledby="timeline-heading" className="mt-8">
-      <h2
-        id="timeline-heading"
-        className="mb-2 flex items-center gap-3 text-xs font-medium tracking-wide text-muted-foreground after:h-px after:flex-1 after:bg-border"
-      >
+    <section aria-labelledby="timeline-heading" className="mt-12 border-t pt-6">
+      <h2 id="timeline-heading" className="mb-1 text-sm font-medium">
         Timeline
       </h2>
       <TimelineAddForm page={page} />
@@ -53,11 +50,14 @@ type TimelineRowProps = {
 
 function TimelineRow({ entry, isChanged, isOpen, onOpenSource }: TimelineRowProps) {
   return (
-    <li className="grid grid-cols-[92px_1fr] gap-3 py-1.5 text-sm">
-      <time className="pt-px text-[13px] text-muted-foreground tabular-nums" dateTime={entry.date}>
+    <li className="flex gap-3 py-1.5 text-md max-sm:text-sm">
+      <time
+        className="w-24 shrink-0 pt-0.5 text-sm text-muted-foreground tabular-nums"
+        dateTime={entry.date}
+      >
         {entry.date}
       </time>
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className={cn("rounded-sm", isChanged && "bg-highlight px-0.5")}>{entry.text}</span>
         <SourceChip entry={entry} isOpen={isOpen} onOpenSource={onOpenSource} />
       </span>
@@ -71,18 +71,18 @@ function SourceChip({
   onOpenSource,
 }: Pick<TimelineRowProps, "entry" | "isOpen" | "onOpenSource">) {
   const chip =
-    "ml-1.5 inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 align-baseline text-xs";
+    "ml-2 inline-flex h-5 max-w-full items-center gap-1 rounded-sm px-1.5 align-text-bottom text-xs transition-colors";
   const file = entry.file;
   if (!file) {
-    return <span className={cn(chip, "bg-card text-muted-foreground")}>{entry.source}</span>;
+    return <span className={cn(chip, "bg-muted text-muted-foreground")}>{entry.source}</span>;
   }
   return (
     <button
       type="button"
       className={cn(
         chip,
-        "bg-card text-foreground/80 hover:bg-accent",
-        isOpen && "border-highlight-border bg-highlight/60",
+        "bg-muted text-foreground hover:bg-accent",
+        isOpen && "bg-highlight hover:bg-highlight",
       )}
       aria-pressed={isOpen}
       onClick={() => onOpenSource(file)}

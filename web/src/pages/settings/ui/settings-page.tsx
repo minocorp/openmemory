@@ -32,23 +32,23 @@ export function SettingsPage({ tab }: SettingsPageProps) {
     <div className="flex h-full flex-col sm:flex-row">
       <nav
         aria-label="Settings"
-        className="flex shrink-0 gap-1 overflow-x-auto border-b px-4 py-2 sm:w-48 sm:flex-col sm:border-r sm:border-b-0 sm:px-3 sm:pt-5"
+        className="flex shrink-0 gap-px overflow-x-auto border-b px-3 py-2 sm:w-52 sm:flex-col sm:border-r sm:border-b-0 sm:px-2 sm:py-0"
       >
-        <h1 className="hidden px-2 pb-2 text-sm font-semibold sm:block">Settings</h1>
+        <h1 className="hidden h-12 items-center px-2 text-sm font-medium sm:flex">Settings</h1>
         {visibleTabs(me.is_admin).map((entry) => (
           <Link
             key={entry}
             to="/settings"
             search={{ tab: entry }}
             aria-current={entry === current ? "page" : undefined}
-            className="rounded-md px-2 py-1 text-[13.5px] whitespace-nowrap hover:bg-accent aria-[current=page]:bg-accent aria-[current=page]:font-semibold"
+            className="flex h-7 items-center rounded-md px-2 text-sm whitespace-nowrap text-muted-foreground -outline-offset-2 transition-colors hover:bg-accent hover:text-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-foreground"
           >
             {tabLabels[entry]}
           </Link>
         ))}
       </nav>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto grid max-w-2xl gap-8 px-4 py-6 sm:px-8 sm:py-8">
+        <div className="mx-auto grid max-w-2xl gap-12 px-4 py-8 sm:px-8 sm:py-12">
           <Suspense fallback={<Skeleton className="h-40" />}>
             <TabContent tab={current} me={me} />
           </Suspense>

@@ -10,7 +10,7 @@ export function MissingPath({ path }: MissingPathProps) {
   return (
     <div className="flex h-full items-center justify-center p-8">
       <div className="max-w-sm text-center">
-        <h1 className="text-lg font-semibold">Nothing here yet</h1>
+        <h1 className="text-md font-medium">Nothing here yet</h1>
         <p className="mt-2 text-sm break-all text-muted-foreground">{path}</p>
         <Button className="mt-5" onClick={() => setIsCreating(true)}>
           Create page here
