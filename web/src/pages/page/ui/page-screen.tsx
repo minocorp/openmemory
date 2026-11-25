@@ -8,7 +8,6 @@ import { pageQuery } from "@/entities/page";
 import { treeQuery } from "@/entities/tree";
 import { PropertyRows } from "@/features/edit-fields";
 import { PageTitle } from "@/features/manage-page";
-import { baseName } from "@/shared/lib/page-path";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { HistoryDrawer } from "@/widgets/history-drawer";
 import { Timeline } from "@/widgets/timeline";
@@ -46,7 +45,6 @@ export function PageScreen({ id, search, onSearchChange }: PageScreenProps) {
   return (
     <div className="flex h-full min-h-0">
       <div className="flex min-w-0 flex-1 flex-col">
-        <title>{`${baseName(page.path)} - Memory`}</title>
         <PageHeader
           page={page}
           unseen={unseen}

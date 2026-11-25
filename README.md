@@ -1,5 +1,7 @@
 # OpenMemory
 
+<img src="docs/logo.png" alt="OpenMemory" width="96">
+
 Self-hosted memory shared by people and their AI agents.
 
 People and agents read and write the same pages. Every change is recorded with its author and can be reverted. Originals such as PDFs sit beside the pages that cite them.
