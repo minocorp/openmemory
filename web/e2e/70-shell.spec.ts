@@ -57,7 +57,7 @@ test.describe.serial("shell", () => {
     await page.context().close();
   });
 
-  test("keeps the sidebar folders after a reload", async ({ browser }) => {
+  test("keeps the sidebar folders and width after a reload", async ({ browser }) => {
     const { page } = await openAdminPage(browser);
     await apiSend(page, {
       method: "PUT",
@@ -71,6 +71,32 @@ test.describe.serial("shell", () => {
     await folder.click();
     await page.reload();
     await expect(folder).toHaveAttribute("aria-expanded", "true");
+
+    const handle = page.getByRole("separator", { name: "Resize sidebar" });
+    await expect(handle).toHaveAttribute("aria-valuenow", "248");
+    const box = await handle.boundingBox();
+    if (!box) {
+      throw new Error("the resize handle is not on screen");
+    }
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 100, y, { steps: 5 });
+    await page.mouse.up();
+    await expect(handle).toHaveAttribute("aria-valuenow", "348");
+    await shoot(page, "76-wide-sidebar");
+    await page.reload();
+    await expect(handle).toHaveAttribute("aria-valuenow", "348");
+    const nav = page.getByRole("navigation", { name: "Pages and files" });
+    expect((await nav.boundingBox())?.width).toBeCloseTo(347, 0);
+    await handle.focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect(handle).toHaveAttribute("aria-valuenow", "332");
+    await handle.dblclick();
+    await expect(handle).toHaveAttribute("aria-valuenow", "248");
+    await page.reload();
+    await expect(handle).toHaveAttribute("aria-valuenow", "248");
     await page.context().close();
   });
 

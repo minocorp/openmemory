@@ -20,6 +20,7 @@ import {
   revealSelection,
   type FolderOverrides,
 } from "../model/folder-state";
+import { ResizableSidebar } from "./resizable-sidebar";
 import { TreeItem } from "./tree-item";
 import { UserMenu } from "./user-menu";
 
@@ -31,7 +32,11 @@ type TreePanelProps = {
 };
 
 export function SidebarTree() {
-  return <TreePanel className="hidden h-svh w-62 shrink-0 border-r bg-sidebar sm:flex" isSidebar />;
+  return (
+    <ResizableSidebar>
+      <TreePanel className="min-w-0 flex-1 border-r bg-sidebar" isSidebar />
+    </ResizableSidebar>
+  );
 }
 
 export function PagesPanel() {
