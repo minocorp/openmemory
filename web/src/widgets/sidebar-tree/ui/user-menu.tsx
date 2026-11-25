@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { ChevronsUpDown, LogOut, Settings } from "lucide-react";
 
 import { meQuery } from "@/entities/user";
@@ -20,12 +20,16 @@ export function UserMenu() {
   const { data: me } = useSuspenseQuery(meQuery());
   const signOut = useSignOut();
   const navigate = useNavigate();
+  const isInSettings = useRouterState({
+    select: (state) => state.location.pathname.startsWith("/settings"),
+  });
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(rowStyle, "h-8 px-2 aria-expanded:bg-sidebar-accent")}
         aria-label="Account menu"
+        aria-current={isInSettings ? "page" : undefined}
       >
         <AuthorBadge
           author={me.username}

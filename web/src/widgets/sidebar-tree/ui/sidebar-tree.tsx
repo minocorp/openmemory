@@ -16,6 +16,9 @@ import { rowStyle } from "../config/row-style";
 import { revealSelection, type FolderOverrides } from "../model/folder-state";
 import { TreeItem } from "./tree-item";
 import { UserMenu } from "./user-menu";
+
+const searchShortcut = navigator.userAgent.includes("Mac") ? "⌘K" : "Ctrl K";
+
 type TreePanelProps = {
   className?: string;
   isSidebar?: boolean;
@@ -55,6 +58,7 @@ function TreePanel({ className, isSidebar = false }: TreePanelProps) {
           size="icon-sm"
           className="text-muted-foreground hover:text-foreground"
           aria-label="New page"
+          title="New page"
           onClick={() => setIsCreating(true)}
         >
           <Plus />
@@ -72,7 +76,7 @@ function TreePanel({ className, isSidebar = false }: TreePanelProps) {
         </div>
       </nav>
       {isSidebar ? (
-        <div className="p-2">
+        <div className="border-t p-2">
           <Suspense fallback={<Skeleton className="h-8" />}>
             <UserMenu />
           </Suspense>
@@ -89,14 +93,13 @@ function TreePanel({ className, isSidebar = false }: TreePanelProps) {
 }
 
 function SectionLinks() {
-  const linkStyle = cn(rowStyle, "px-2 [&.active]:bg-sidebar-accent [&.active]:font-medium");
   return (
     <div className="grid gap-px px-2 pb-2">
-      <Link to="/" activeOptions={{ exact: true }} className={linkStyle}>
-        <Home className="size-4 text-muted-foreground" /> Home
+      <Link to="/" activeOptions={{ exact: true }} className={cn(rowStyle, "px-2")}>
+        <Home className="size-3.5 text-muted-foreground" /> Home
       </Link>
-      <Link to="/files" activeOptions={{ includeSearch: false }} className={linkStyle}>
-        <Folder className="size-4 text-muted-foreground" /> Files
+      <Link to="/files" activeOptions={{ includeSearch: false }} className={cn(rowStyle, "px-2")}>
+        <Folder className="size-3.5 text-muted-foreground" /> Files
       </Link>
     </div>
   );
@@ -111,7 +114,7 @@ function SearchButton() {
     >
       <Search className="size-4" />
       <span className="flex-1 text-left">Search</span>
-      <kbd className="font-sans text-xs text-muted-foreground max-sm:hidden">⌘K</kbd>
+      <kbd className="font-sans text-xs text-muted-foreground max-sm:hidden">{searchShortcut}</kbd>
     </button>
   );
 }

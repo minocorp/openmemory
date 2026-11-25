@@ -35,7 +35,9 @@ export function TreeItem({ node, depth, selectedPath, overrides, onToggle }: Tre
               isOpen && "rotate-90",
             )}
           />
-          <span className="min-w-0 flex-1 truncate">{node.name}</span>
+          <span className="min-w-0 flex-1 truncate" title={node.name}>
+            {node.name}
+          </span>
           <span className="text-xs text-muted-foreground tabular-nums">{node.count}</span>
         </button>
         {isOpen ? (
@@ -63,13 +65,18 @@ export function TreeItem({ node, depth, selectedPath, overrides, onToggle }: Tre
         ref={isSelected ? revealRow : undefined}
         to="/p/$"
         params={{ _splat: node.path }}
-        className={cn(rowStyle, isSelected && "bg-sidebar-accent font-medium")}
+        activeOptions={{ exact: true }}
+        className={rowStyle}
         style={{ paddingLeft: indentRem(depth) }}
         aria-current={isSelected ? "page" : undefined}
       >
         <Icon className="size-3.5 shrink-0 text-muted-foreground" />
         <span
-          className={cn("min-w-0 flex-1 truncate", node.kind === "file" && "text-muted-foreground")}
+          className={cn(
+            "min-w-0 flex-1 truncate",
+            node.kind === "file" && !isSelected && "text-muted-foreground",
+          )}
+          title={node.name}
         >
           {node.name}
         </span>
