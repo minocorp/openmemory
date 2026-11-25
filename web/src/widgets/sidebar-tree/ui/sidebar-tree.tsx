@@ -16,22 +16,23 @@ import { rowStyle } from "../config/row-style";
 import { revealSelection, type FolderOverrides } from "../model/folder-state";
 import { TreeItem } from "./tree-item";
 import { UserMenu } from "./user-menu";
+
+const searchShortcut = navigator.userAgent.includes("Mac") ? "⌘K" : "Ctrl K";
+
 type TreePanelProps = {
   className?: string;
-  hasUserMenu?: boolean;
+  isSidebar?: boolean;
 };
 
 export function SidebarTree() {
-  return (
-    <TreePanel className="hidden h-svh w-62 shrink-0 border-r bg-sidebar sm:flex" hasUserMenu />
-  );
+  return <TreePanel className="hidden h-svh w-62 shrink-0 border-r bg-sidebar sm:flex" isSidebar />;
 }
 
 export function PagesPanel() {
   return <TreePanel className="h-full bg-background" />;
 }
 
-function TreePanel({ className, hasUserMenu = false }: TreePanelProps) {
+function TreePanel({ className, isSidebar = false }: TreePanelProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const selectedPath = pagePathFromPathname(pathname);
   const [isCreating, setIsCreating] = useState(false);
@@ -57,6 +58,7 @@ function TreePanel({ className, hasUserMenu = false }: TreePanelProps) {
           size="icon-sm"
           className="text-muted-foreground hover:text-foreground"
           aria-label="New page"
+          title="New page"
           onClick={() => setIsCreating(true)}
         >
           <Plus />
@@ -66,15 +68,15 @@ function TreePanel({ className, hasUserMenu = false }: TreePanelProps) {
         <SearchButton />
       </div>
       <nav aria-label="Pages and files" className="flex min-h-0 flex-1 flex-col">
-        {hasUserMenu ? <SectionLinks /> : null}
+        {isSidebar ? <SectionLinks /> : null}
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pt-1 pb-4">
           <Suspense fallback={<TreeSkeleton />}>
             <TreeNodes selectedPath={selectedPath} overrides={overrides} onToggle={toggleFolder} />
           </Suspense>
         </div>
       </nav>
-      {hasUserMenu ? (
-        <div className="p-2">
+      {isSidebar ? (
+        <div className="border-t p-2">
           <Suspense fallback={<Skeleton className="h-8" />}>
             <UserMenu />
           </Suspense>
@@ -91,14 +93,13 @@ function TreePanel({ className, hasUserMenu = false }: TreePanelProps) {
 }
 
 function SectionLinks() {
-  const linkStyle = cn(rowStyle, "px-2 [&.active]:bg-sidebar-accent [&.active]:font-medium");
   return (
     <div className="grid gap-px px-2 pb-2">
-      <Link to="/" activeOptions={{ exact: true }} className={linkStyle}>
-        <Home className="size-4 text-muted-foreground" /> Home
+      <Link to="/" activeOptions={{ exact: true }} className={cn(rowStyle, "px-2")}>
+        <Home className="size-3.5 text-muted-foreground" /> Home
       </Link>
-      <Link to="/files" activeOptions={{ includeSearch: false }} className={linkStyle}>
-        <Folder className="size-4 text-muted-foreground" /> Files
+      <Link to="/files" activeOptions={{ includeSearch: false }} className={cn(rowStyle, "px-2")}>
+        <Folder className="size-3.5 text-muted-foreground" /> Files
       </Link>
     </div>
   );
@@ -113,7 +114,7 @@ function SearchButton() {
     >
       <Search className="size-4" />
       <span className="flex-1 text-left">Search</span>
-      <kbd className="font-sans text-xs text-muted-foreground max-sm:hidden">⌘K</kbd>
+      <kbd className="font-sans text-xs text-muted-foreground max-sm:hidden">{searchShortcut}</kbd>
     </button>
   );
 }
@@ -137,7 +138,7 @@ function TreeNodes({ selectedPath, overrides, onToggle }: TreeNodesProps) {
     return <p className="px-2 py-1.5 text-sm text-muted-foreground">No pages yet.</p>;
   }
   return (
-    <ul className="grid gap-px">
+    <ul className="grid grid-cols-1 gap-px">
       {nodes.map((node) => (
         <TreeItem
           key={`${node.kind}:${node.path}`}
