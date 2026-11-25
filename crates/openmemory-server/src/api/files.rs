@@ -13,7 +13,7 @@ use serde::Deserialize;
 use utoipa::OpenApi;
 
 use crate::api::error::ApiError;
-use crate::api::files::headers::with_common_headers;
+use crate::api::files::headers::with_content_headers;
 use crate::api::precondition::matches_none_match;
 use crate::api::range::{self, RangeRequest};
 use crate::auth::{ApiSession, BinaryApiSession};
@@ -222,10 +222,11 @@ async fn get_file_content(
     let record = state.files().metadata(&session.actor, &file).await?;
     let tag = file_etag(&record);
     if matches_none_match(&headers, &tag) {
-        return Ok(with_common_headers(
+        return Ok(with_content_headers(
             StatusCode::NOT_MODIFIED.into_response(),
             &record,
             &tag,
+            &headers,
             query.download,
         ));
     }
@@ -252,7 +253,13 @@ async fn get_file_content(
             if let Ok(value) = HeaderValue::from_str(&format!("bytes */{size}")) {
                 response.headers_mut().insert(CONTENT_RANGE, value);
             }
-            return Ok(with_common_headers(response, &record, &tag, query.download));
+            return Ok(with_content_headers(
+                response,
+                &record,
+                &tag,
+                &headers,
+                query.download,
+            ));
         }
     };
     let served = download.record;
@@ -264,10 +271,11 @@ async fn get_file_content(
     if let Some(value) = content_range.and_then(|text| HeaderValue::from_str(&text).ok()) {
         response.headers_mut().insert(CONTENT_RANGE, value);
     }
-    Ok(with_common_headers(
+    Ok(with_content_headers(
         response,
         &served,
         &file_etag(&served),
+        &headers,
         query.download,
     ))
 }

@@ -113,7 +113,14 @@ async fn a_rejected_upload_leaves_the_link_usable(pool: PgPool) {
         .await
         .unwrap();
 
-    let (status, _) = send(&fx, Method::POST, &link.token, Some("text/html"), b"<p>").await;
+    let (status, _) = send(
+        &fx,
+        Method::POST,
+        &link.token,
+        Some("application/zip"),
+        b"PK",
+    )
+    .await;
     assert_eq!(status, StatusCode::UNSUPPORTED_MEDIA_TYPE);
     let (status, _) = send(&fx, Method::POST, &link.token, None, b"x").await;
     assert_eq!(status, StatusCode::BAD_REQUEST);

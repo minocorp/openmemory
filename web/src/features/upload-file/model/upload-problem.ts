@@ -16,7 +16,7 @@ export function describeUploadError(error: ApiError, body: unknown): string {
         : "The file is too large.";
     }
     case 415:
-      return "This file type is not accepted. Use a pdf, text, markdown, csv, image, spreadsheet or audio file.";
+      return "This file type is not accepted. Use a pdf, text, markdown, csv, html, xml, image, svg, spreadsheet, docx or audio file.";
     case 422:
       return error.code === "credential"
         ? `The text looks like a secret (${error.pattern ?? "credential"}) and was rejected.`

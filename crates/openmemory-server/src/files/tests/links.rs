@@ -86,7 +86,7 @@ async fn a_failed_upload_leaves_the_link_usable(pool: PgPool) {
         .unwrap();
     let rejected = fx
         .files
-        .redeem_upload_link(&link.token, Bytes::from_static(b"x"), "text/html")
+        .redeem_upload_link(&link.token, Bytes::from_static(b"x"), "application/zip")
         .await;
     assert!(matches!(rejected, Err(FilesError::UnsupportedMime)));
     let retried = fx

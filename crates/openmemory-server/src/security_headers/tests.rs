@@ -42,6 +42,7 @@ async fn every_response_carries_the_hardening_headers(pool: PgPool) {
     assert!(policy.contains("script-src 'self'"));
     assert!(policy.contains("connect-src 'self'"));
     assert!(policy.contains("default-src 'none'"));
+    assert!(policy.contains("frame-src 'self'"));
 }
 
 #[sqlx::test]

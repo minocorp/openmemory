@@ -70,7 +70,9 @@ async fn uploads_are_validated(pool: PgPool) -> TestResult {
     let app = App::new(pool);
     let (admin, _) = app.admin().await?;
     assert_eq!(
-        upload(&admin, "a.html", "text/html", b"<p>").await?.status,
+        upload(&admin, "a.zip", "application/zip", b"PK")
+            .await?
+            .status,
         StatusCode::UNSUPPORTED_MEDIA_TYPE
     );
     assert_eq!(
