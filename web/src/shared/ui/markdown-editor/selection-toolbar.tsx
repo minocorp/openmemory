@@ -1,9 +1,7 @@
 import { Bold, Code, Heading2, Italic, Link, Strikethrough } from "lucide-react";
-import type { ReactNode } from "react";
-
-import { Button } from "@/shared/ui/button";
 
 import type { InlineFormat } from "./formatting";
+import { ToolbarButton } from "./toolbar-button";
 
 export type ToolbarPosition = { top: number; left: number };
 
@@ -13,24 +11,6 @@ type SelectionToolbarProps = {
   onHeading: () => void;
   onLink: () => void;
 };
-
-type ToolbarButtonProps = { label: string; onPress: () => void; children: ReactNode };
-
-function ToolbarButton({ label, onPress, children }: ToolbarButtonProps) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon-sm"
-      aria-label={label}
-      title={label}
-      onMouseDown={(event) => event.preventDefault()}
-      onClick={onPress}
-    >
-      {children}
-    </Button>
-  );
-}
 
 export function SelectionToolbar({ position, onInline, onHeading, onLink }: SelectionToolbarProps) {
   return (

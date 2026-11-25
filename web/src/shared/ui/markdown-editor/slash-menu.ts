@@ -6,19 +6,77 @@ import {
 } from "@codemirror/autocomplete";
 import type { EditorView } from "@codemirror/view";
 
-import type { LinkTarget } from "./link-targets";
+import { emptyTable } from "@/shared/lib/markdown";
+
+import { linkTargetsFacet } from "./preview/context";
+import { focusCell } from "./preview/table-focus";
 
 const slashPattern = /(?:^|\s)\/[\w-]*$/;
 const wikiPattern = /\[\[[^\]\n]*$/;
+const tableColumns = 3;
+const tableBodyRows = 2;
 
-type SlashCommand = { label: string; detail: string; prefix: string };
+type BlockInsert = (view: EditorView, slashFrom: number, to: number) => void;
+
+type SlashCommand = { label: string; detail: string; insert: BlockInsert };
+
+function prefixLine(prefix: string): BlockInsert {
+  return (view, slashFrom, to) => {
+    const line = view.state.doc.lineAt(slashFrom);
+    view.dispatch({
+      changes: [
+        { from: line.from, insert: prefix },
+        { from: slashFrom, to },
+      ],
+    });
+  };
+}
+
+function placeBlock(view: EditorView, slashFrom: number, to: number, block: string): number {
+  const { state } = view;
+  const line = state.doc.lineAt(slashFrom);
+  const rest = state.sliceDoc(line.from, slashFrom) + state.sliceDoc(to, line.to);
+  const previous = line.number > 1 ? state.doc.line(line.number - 1).text : "";
+  if (rest.trim() === "") {
+    const gap = previous.trim() === "" ? "" : "\n";
+    view.dispatch({ changes: { from: line.from, to: line.to, insert: gap + block } });
+    return line.from + gap.length;
+  }
+  view.dispatch({
+    changes: [
+      { from: slashFrom, to },
+      { from: line.to, insert: `\n\n${block}` },
+    ],
+  });
+  return line.to - (to - slashFrom) + 2;
+}
+
+const insertCode: BlockInsert = (view, slashFrom, to) => {
+  const start = placeBlock(view, slashFrom, to, "```\n\n```");
+  view.dispatch({ selection: { anchor: start + 4 } });
+};
+
+const insertDivider: BlockInsert = (view, slashFrom, to) => {
+  const start = placeBlock(view, slashFrom, to, "---\n");
+  view.dispatch({ selection: { anchor: start + 4 } });
+};
+
+const insertTable: BlockInsert = (view, slashFrom, to) => {
+  const start = placeBlock(view, slashFrom, to, emptyTable(tableColumns, tableBodyRows));
+  focusCell(view, start, { row: 0, column: 0 }, "end");
+};
 
 const blockCommands: SlashCommand[] = [
-  { label: "Heading 1", detail: "#", prefix: "# " },
-  { label: "Heading 2", detail: "##", prefix: "## " },
-  { label: "Heading 3", detail: "###", prefix: "### " },
-  { label: "Bulleted list", detail: "-", prefix: "- " },
-  { label: "Checklist", detail: "- [ ]", prefix: "- [ ] " },
+  { label: "Heading 1", detail: "#", insert: prefixLine("# ") },
+  { label: "Heading 2", detail: "##", insert: prefixLine("## ") },
+  { label: "Heading 3", detail: "###", insert: prefixLine("### ") },
+  { label: "Bulleted list", detail: "-", insert: prefixLine("- ") },
+  { label: "Numbered list", detail: "1.", insert: prefixLine("1. ") },
+  { label: "Checklist", detail: "- [ ]", insert: prefixLine("- [ ] ") },
+  { label: "Quote", detail: ">", insert: prefixLine("> ") },
+  { label: "Table", detail: "| |", insert: insertTable },
+  { label: "Code block", detail: "```", insert: insertCode },
+  { label: "Divider", detail: "---", insert: insertDivider },
 ];
 
 function blockCompletion(command: SlashCommand, index: number): Completion {
@@ -26,15 +84,7 @@ function blockCompletion(command: SlashCommand, index: number): Completion {
     label: command.label,
     boost: -index,
     detail: command.detail,
-    apply: (view, _completion, from, to) => {
-      const line = view.state.doc.lineAt(from);
-      view.dispatch({
-        changes: [
-          { from: line.from, insert: command.prefix },
-          { from: from - 1, to },
-        ],
-      });
-    },
+    apply: (view, _completion, from, to) => command.insert(view, from - 1, to),
   };
 }
 
@@ -64,26 +114,25 @@ export function slashSource(context: CompletionContext): CompletionResult | null
   };
 }
 
-export function wikiSource(getTargets: () => readonly LinkTarget[]) {
-  return (context: CompletionContext): CompletionResult | null => {
-    const match = context.matchBefore(wikiPattern);
-    if (!match) {
-      return null;
-    }
-    return {
-      from: match.from + 2,
-      options: getTargets().map((target) => ({
-        label: target.path,
-        detail: target.kind,
-        apply: (view, _completion, from, to) => {
-          const hasClosing = view.state.doc.sliceString(to, to + 2) === "]]";
-          view.dispatch({
-            changes: { from, to, insert: hasClosing ? target.path : `${target.path}]]` },
-            selection: { anchor: from + target.path.length + 2 },
-          });
-        },
-      })),
-      validFor: /^[^\]\n]*$/,
-    };
+export function wikiSource(context: CompletionContext): CompletionResult | null {
+  const match = context.matchBefore(wikiPattern);
+  if (!match) {
+    return null;
+  }
+  const targets = context.state.facet(linkTargetsFacet)?.targets ?? [];
+  return {
+    from: match.from + 2,
+    options: targets.map((target) => ({
+      label: target.path,
+      detail: target.kind,
+      apply: (view, _completion, from, to) => {
+        const hasClosing = view.state.doc.sliceString(to, to + 2) === "]]";
+        view.dispatch({
+          changes: { from, to, insert: hasClosing ? target.path : `${target.path}]]` },
+          selection: { anchor: from + target.path.length + 2 },
+        });
+      },
+    })),
+    validFor: /^[^\]\n]*$/,
   };
 }
