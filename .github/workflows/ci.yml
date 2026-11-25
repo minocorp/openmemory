@@ -31,7 +31,7 @@ jobs:
       - name: Squawk on new migrations
         run: |
           base=$(git merge-base HEAD origin/main)
-          files=$(git diff --name-only --diff-filter=A "$base" HEAD -- 'crates/openmemory-server/migrations/*.sql')
+          files=$(git diff --name-only --diff-filter=A -M "$base" HEAD | grep '^crates/openmemory-server/migrations/.*\.sql$' || true)
           if [ -n "$files" ]; then
             npx --yes squawk-cli@2.74.0 --config .squawk.toml $files
           fi
