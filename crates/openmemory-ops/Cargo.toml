@@ -8,6 +8,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+pulldown-cmark.workspace = true
 schemars.workspace = true
 serde.workspace = true
 serde-saphyr.workspace = true

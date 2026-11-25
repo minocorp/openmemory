@@ -1,4 +1,4 @@
-export type FilePreview = "pdf" | "image" | "page" | "text" | "none";
+export type FilePreview = "pdf" | "image" | "page" | "markdown" | "text" | "none";
 
 const sourceTypes = new Set(["application/xml", "text/xml"]);
 
@@ -8,6 +8,9 @@ export function filePreview(mime: string): FilePreview {
   }
   if (mime === "text/html") {
     return "page";
+  }
+  if (mime === "text/markdown") {
+    return "markdown";
   }
   if (mime.startsWith("image/")) {
     return "image";

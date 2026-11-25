@@ -1,3 +1,7 @@
+use std::ops::Range;
+
+use pulldown_cmark::{Event, Options, Parser, Tag};
+
 use crate::PagePath;
 
 struct Link<'a> {
@@ -37,11 +41,35 @@ pub fn rewrite_links(text: &str, from: &PagePath, to: &PagePath) -> Option<Strin
     Some(rewritten)
 }
 
+fn code_spans(text: &str) -> Vec<Range<usize>> {
+    let options = Options::ENABLE_TABLES
+        | Options::ENABLE_STRIKETHROUGH
+        | Options::ENABLE_TASKLISTS
+        | Options::ENABLE_YAML_STYLE_METADATA_BLOCKS;
+    Parser::new_ext(text, options)
+        .into_offset_iter()
+        .filter(|(event, _)| matches!(event, Event::Code(_) | Event::Start(Tag::CodeBlock(_))))
+        .map(|(_, range)| range)
+        .collect()
+}
+
 fn links(text: &str) -> Vec<Link<'_>> {
+    let code = code_spans(text);
     let mut found = Vec::new();
     let mut position = 0;
     while let Some(offset) = text.get(position..).and_then(|rest| rest.find("[[")) {
         let start = position + offset;
+        if let Some(span) = code.iter().find(|span| span.contains(&start)) {
+            position = span.end.max(start + 1);
+            continue;
+        }
+        if text
+            .get(..start)
+            .is_some_and(|before| before.ends_with('\\'))
+        {
+            position = start + 1;
+            continue;
+        }
         let inner_start = start + 2;
         let Some(length) = text.get(inner_start..).and_then(|rest| rest.find("]]")) else {
             break;
@@ -88,6 +116,29 @@ mod tests {
             rewritten,
             "[[new/place]] [[older]] [[old/sub]] and [[new/place]] again 한글"
         );
+    }
+
+    #[test]
+    fn links_inside_code_are_ignored() {
+        let text = "`[[a]]` and [[b]]\n\n```\n[[c]]\n```\n\n    [[d]]\n\n[[e]]";
+        assert_eq!(link_targets(text), vec![path("b"), path("e")]);
+    }
+
+    #[test]
+    fn indented_frontmatter_values_are_not_code() {
+        let text = "---\nlinks:\n    - \"[[a]]\"\n---\n\n[[b]]";
+        assert_eq!(link_targets(text), vec![path("a"), path("b")]);
+    }
+
+    #[test]
+    fn escaped_links_are_ignored() {
+        assert_eq!(link_targets("\\[[a]] [[b]]"), vec![path("b")]);
+    }
+
+    #[test]
+    fn rewriting_leaves_code_alone() {
+        let rewritten = rewrite_links("`[[old]]` [[old]]", &path("old"), &path("new")).unwrap();
+        assert_eq!(rewritten, "`[[old]]` [[new]]");
     }
 
     #[test]
