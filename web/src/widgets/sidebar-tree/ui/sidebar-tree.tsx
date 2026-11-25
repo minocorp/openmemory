@@ -137,7 +137,7 @@ function TreeNodes({ selectedPath, overrides, onToggle }: TreeNodesProps) {
     return <p className="px-2 py-1.5 text-sm text-muted-foreground">No pages yet.</p>;
   }
   return (
-    <ul className="grid gap-px">
+    <ul className="grid grid-cols-1 gap-px">
       {nodes.map((node) => (
         <TreeItem
           key={`${node.kind}:${node.path}`}

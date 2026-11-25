@@ -39,7 +39,7 @@ export function TreeItem({ node, depth, selectedPath, overrides, onToggle }: Tre
           <span className="text-xs text-muted-foreground tabular-nums">{node.count}</span>
         </button>
         {isOpen ? (
-          <ul className="mt-px grid gap-px">
+          <ul className="mt-px grid grid-cols-1 gap-px">
             {node.children.map((child) => (
               <TreeItem
                 key={`${child.kind}:${child.path}`}
