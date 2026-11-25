@@ -1,11 +1,11 @@
 {
-  "name": "memory-web",
+  "name": "openmemory-web",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "gen:openapi": "SQLX_OFFLINE=true cargo run --locked -q -p memory-server -- openapi > openapi.json.tmp && mv openapi.json.tmp openapi.json",
+    "gen:openapi": "SQLX_OFFLINE=true cargo run --locked -q -p openmemory-server -- openapi > openapi.json.tmp && mv openapi.json.tmp openapi.json",
     "gen:types": "pnpm --dir tools/openapi-codegen exec openapi-typescript ../../openapi.json --empty-objects-unknown -o ../../src/shared/api/schema.d.ts",
     "gen:api": "pnpm gen:openapi && pnpm gen:types",
     "typecheck": "tsr generate && tsc --noEmit",

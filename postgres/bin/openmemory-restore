@@ -1,0 +1,20 @@
+#!/bin/bash
+set -euo pipefail
+. /usr/local/bin/openmemory-lib
+
+repo=1
+target=()
+while [ $# -gt 0 ]; do
+  case $1 in
+    --repo) repo=$2; shift 2 ;;
+    --time) target=(--type=time "--target=$2" --target-action=promote); shift 2 ;;
+    *) echo "usage: openmemory-restore [--repo 1|2] [--time 'YYYY-MM-DD HH:MM:SS+00']" >&2; exit 2 ;;
+  esac
+done
+
+gosu postgres pgbackrest --repo="$repo" --delta "${target[@]}" restore
+if blobs_are_local; then
+  restic_select "$repo"
+  restic_do restore latest --host openmemory --target /
+fi
+echo "restore finished: start the stack to replay WAL and promote" >&2

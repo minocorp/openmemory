@@ -1,0 +1,39 @@
+export PGHOST=/var/run/postgresql
+export PGUSER=openmemory
+export PGDATABASE=openmemory
+
+backup_repos() {
+  if [ -n "${OPENMEMORY_BACKUP_S3_BUCKET:-}" ]; then echo "1 2"; else echo "1"; fi
+}
+
+blobs_are_local() {
+  [ -z "${OPENMEMORY_S3_BUCKET:-}" ]
+}
+
+RESTIC_ARGS=()
+
+restic_select() {
+  RESTIC_ARGS=()
+  export RESTIC_PASSWORD="$OPENMEMORY_BACKUP_PASSPHRASE"
+  export AWS_ACCESS_KEY_ID="${OPENMEMORY_BACKUP_S3_ACCESS_KEY:-}"
+  export AWS_SECRET_ACCESS_KEY="${OPENMEMORY_BACKUP_S3_SECRET_KEY:-}"
+  export AWS_DEFAULT_REGION="${OPENMEMORY_BACKUP_S3_REGION:-us-east-1}"
+  if [ "$1" = 2 ]; then
+    export RESTIC_REPOSITORY="s3:${OPENMEMORY_BACKUP_S3_ENDPOINT%/}/${OPENMEMORY_BACKUP_S3_BUCKET}/restic"
+    if [ "${OPENMEMORY_BACKUP_S3_URI_STYLE:-host}" = path ]; then
+      RESTIC_ARGS=(-o s3.bucket-lookup=path)
+    else
+      RESTIC_ARGS=(-o s3.bucket-lookup=dns)
+    fi
+  else
+    export RESTIC_REPOSITORY=/backup/restic
+  fi
+}
+
+restic_do() {
+  restic "${RESTIC_ARGS[@]}" "$@"
+}
+
+log() {
+  echo "$(date -u +%FT%TZ) $*" >&2
+}

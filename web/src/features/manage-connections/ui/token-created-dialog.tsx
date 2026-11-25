@@ -18,7 +18,7 @@ export function TokenCreatedDialog({ token, onClose }: TokenCreatedDialogProps) 
         <DialogHeader>
           <DialogTitle>Copy your token</DialogTitle>
           <DialogDescription>
-            It is shown only once. Set it as MEMORY_TOKEN in your scripts.
+            It is shown only once. Set it as OPENMEMORY_TOKEN in your scripts.
           </DialogDescription>
         </DialogHeader>
         <CopySnippet label="Personal access token" text={token} />

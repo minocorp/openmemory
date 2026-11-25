@@ -34,7 +34,7 @@ function psql(sql: string) {
       "postgres",
       "psql",
       "-U",
-      "memory",
+      "openmemory",
       "-d",
       "postgres",
       "-v",
@@ -52,7 +52,7 @@ function resetDatabase() {
 }
 
 function buildServer() {
-  execFileSync("cargo", ["build", "-p", "memory-server", "--locked"], {
+  execFileSync("cargo", ["build", "-p", "openmemory-server", "--locked"], {
     cwd: repoRoot,
     env: cargoEnvironment(),
     stdio: "inherit",
@@ -61,16 +61,16 @@ function buildServer() {
 
 function startServer(): ChildProcess {
   rmSync(blobDirectory, { recursive: true, force: true });
-  return spawn(resolve(repoRoot, "target/debug/memory-server"), ["serve"], {
+  return spawn(resolve(repoRoot, "target/debug/openmemory-server"), ["serve"], {
     cwd: repoRoot,
     env: {
       ...process.env,
       NO_COLOR: "1",
       DATABASE_URL: databaseUrl,
-      MEMORY_LISTEN: `127.0.0.1:${apiPort}`,
-      MEMORY_PUBLIC_URL: webOrigin,
-      MEMORY_BLOB_DIR: blobDirectory,
-      MEMORY_TRUSTED_PROXIES: "127.0.0.1,::1",
+      OPENMEMORY_LISTEN: `127.0.0.1:${apiPort}`,
+      OPENMEMORY_PUBLIC_URL: webOrigin,
+      OPENMEMORY_BLOB_DIR: blobDirectory,
+      OPENMEMORY_TRUSTED_PROXIES: "127.0.0.1,::1",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

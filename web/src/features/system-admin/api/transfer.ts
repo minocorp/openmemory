@@ -22,7 +22,7 @@ export async function downloadExport() {
   const url = URL.createObjectURL(await response.blob());
   const link = document.createElement("a");
   link.href = url;
-  link.download = "memory-export.zip";
+  link.download = "openmemory-export.zip";
   link.click();
   URL.revokeObjectURL(url);
 }

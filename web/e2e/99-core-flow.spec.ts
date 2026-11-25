@@ -14,7 +14,7 @@ async function pageContent(page: Page, path: string): Promise<string> {
   return String(data["content"]);
 }
 
-test.describe.serial("memory web", () => {
+test.describe.serial("openmemory web", () => {
   let page: Page;
   let authenticator: Awaited<ReturnType<typeof openAdminPage>>["authenticator"];
   const recoveryCode = adminRecoveryCode();

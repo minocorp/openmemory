@@ -1,0 +1,148 @@
+#!/bin/bash
+set -uo pipefail
+. /usr/local/bin/openmemory-lib
+
+readonly STATE=/backup/state
+readonly STATUS=/backup/status.json
+readonly WEEK=604800 DAY=86400 HOUR=3600 CHECK_EVERY=300
+retention=${OPENMEMORY_BACKUP_RETENTION_DAYS:-14}
+mkdir -p "$STATE"
+
+now() { date +%s; }
+
+read_epoch() { cat "$1" 2>/dev/null || echo 0; }
+
+last_backup() {
+  jq -r --arg type "$2" --argjson repo "$3" '
+    [.[0].backup[]?
+      | select(.database["repo-key"] == $repo and ($type == "any" or .type == $type))
+      | .timestamp.stop] | max // 0' <<<"$1"
+}
+
+oldest_across_repos() {
+  local info=$1 type=$2 oldest="" value repo
+  for repo in $(backup_repos); do
+    value=$(last_backup "$info" "$type" "$repo")
+    if [ -z "$oldest" ] || [ "$value" -lt "$oldest" ]; then oldest=$value; fi
+  done
+  echo "${oldest:-0}"
+}
+
+write_status() {
+  local info full any blobs="" off_host=false in_backup=false repo value
+  info=$(pgbackrest info --output=json 2>/dev/null) || info='[]'
+  full=$(oldest_across_repos "$info" full)
+  any=$(oldest_across_repos "$info" any)
+  if blobs_are_local; then
+    in_backup=true
+    for repo in $(backup_repos); do
+      value=$(read_epoch "$STATE/blobs-$repo")
+      if [ -z "$blobs" ] || [ "$value" -lt "$blobs" ]; then blobs=$value; fi
+    done
+  fi
+  blobs=${blobs:-0}
+  if [ -n "${OPENMEMORY_BACKUP_S3_BUCKET:-}" ]; then off_host=true; fi
+  local restore_test=null
+  if [ -s "$STATE/restore-test.json" ]; then restore_test=$(cat "$STATE/restore-test.json"); fi
+  jq -n \
+    --argjson full "$full" --argjson any "$any" --argjson blobs "$blobs" \
+    --argjson off_host "$off_host" --argjson in_backup "$in_backup" \
+    --argjson restore_test "$restore_test" '
+    def stamp: if . > 0 then todate else null end;
+    {
+      updated_at: (now | floor | todate),
+      last_full_at: ($full | stamp),
+      last_backup_at: ($any | stamp),
+      off_host: $off_host,
+      blobs: {in_backup: $in_backup, last_snapshot_at: ($blobs | stamp)},
+      restore_test: $restore_test
+    }' >"$STATUS.tmp" && mv "$STATUS.tmp" "$STATUS"
+}
+
+status_loop() {
+  while true; do
+    write_status || log "writing status failed"
+    sleep 60
+  done
+}
+
+wait_for_postgres() {
+  until pg_isready -q; do sleep 2; done
+}
+
+prepare() {
+  until pgbackrest stanza-create; do
+    log "stanza-create failed, retrying"
+    sleep 10
+  done
+  pgbackrest check || log "pgbackrest check failed"
+  if blobs_are_local; then
+    local repo
+    for repo in $(backup_repos); do
+      restic_select "$repo"
+      restic_do cat config >/dev/null 2>&1 || restic_do init || log "restic init failed for repo $repo"
+    done
+  fi
+}
+
+backup_database() {
+  local info repo full any
+  info=$(pgbackrest info --output=json 2>/dev/null) || info='[]'
+  for repo in $(backup_repos); do
+    full=$(last_backup "$info" full "$repo")
+    any=$(last_backup "$info" any "$repo")
+    if [ $(($(now) - full)) -gt $WEEK ]; then
+      pgbackrest --repo="$repo" backup --type=full || log "full backup to repo $repo failed"
+    elif [ $(($(now) - any)) -gt $DAY ]; then
+      pgbackrest --repo="$repo" backup --type=incr || log "incremental backup to repo $repo failed"
+    fi
+  done
+}
+
+backup_blobs() {
+  local repo
+  blobs_are_local || return 0
+  for repo in $(backup_repos); do
+    [ $(($(now) - $(read_epoch "$STATE/blobs-$repo"))) -gt $HOUR ] || continue
+    restic_select "$repo"
+    if restic_do backup /blobs --host openmemory --quiet; then
+      now >"$STATE/blobs-$repo"
+    else
+      log "blob backup to repo $repo failed"
+    fi
+    if [ $(($(now) - $(read_epoch "$STATE/blobs-forget-$repo"))) -gt $DAY ]; then
+      restic_do forget --host openmemory --keep-within "${retention}d" --prune --quiet \
+        && now >"$STATE/blobs-forget-$repo"
+    fi
+  done
+}
+
+restore_test_due() {
+  local at=0 ok=true
+  if [ -s "$STATE/restore-test.json" ]; then
+    at=$(jq -r '.at | fromdateiso8601' "$STATE/restore-test.json")
+    ok=$(jq -r '.ok' "$STATE/restore-test.json")
+  fi
+  local wait=$WEEK
+  if [ "$ok" != true ]; then wait=$HOUR; fi
+  [ $(($(now) - at)) -gt "$wait" ] &&
+    pgbackrest info --output=json | jq -e '.[0].backup | length > 0' >/dev/null &&
+    [ "$(psql -Atc "SELECT to_regclass('pages') IS NOT NULL" 2>/dev/null)" = t ]
+}
+
+trap 'kill 0' TERM INT
+wait_for_postgres
+prepare
+status_loop &
+last_check=0
+while true; do
+  if [ $(($(now) - last_check)) -gt $CHECK_EVERY ]; then
+    pgbackrest check || log "pgbackrest check failed"
+    last_check=$(now)
+  fi
+  backup_database
+  backup_blobs
+  if restore_test_due; then openmemory-restore-test || log "restore test failed"; fi
+  sleep 60 &
+  wait $!
+done

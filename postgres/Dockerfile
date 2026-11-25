@@ -16,7 +16,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates pgbackrest restic jq \
  && rm -rf /var/lib/apt/lists/* \
  && install -d -o postgres -g postgres /backup /etc/pgbackrest /var/log/pgbackrest
-ENV PGBACKREST_STANZA=memory
+ENV PGBACKREST_STANZA=openmemory
 COPY --chmod=755 bin/ /usr/local/bin/
-ENTRYPOINT ["memory-entrypoint"]
+ENTRYPOINT ["openmemory-entrypoint"]
 CMD ["postgres"]

@@ -9,7 +9,7 @@ export function ConsentNotice({ title, detail }: ConsentNoticeProps) {
     <ConsentCard title={title}>
       {detail ? <p className="text-sm text-muted-foreground">{detail}</p> : null}
       <Link to="/" className="mt-6 inline-block text-sm underline underline-offset-4">
-        Back to memory
+        Back to OpenMemory
       </Link>
     </ConsentCard>
   );

@@ -2216,101 +2216,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "memory-api"
-version = "0.2.1"
-dependencies = [
- "serde",
- "serde_json",
- "time",
- "utoipa",
-]
-
-[[package]]
-name = "memory-cli"
-version = "0.2.1"
-dependencies = [
- "anyhow",
- "apple-native-keyring-store",
- "axum",
- "base64 0.22.1",
- "bytes",
- "clap",
- "clap_complete",
- "futures-util",
- "keyring-core",
- "memory-api",
- "memory-server",
- "object_store",
- "rand",
- "reqwest",
- "serde",
- "serde_json",
- "sha2",
- "sqlx",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tokio-util",
- "url",
- "windows-native-keyring-store",
- "zbus-secret-service-keyring-store",
-]
-
-[[package]]
-name = "memory-ops"
-version = "0.2.1"
-dependencies = [
- "schemars 1.2.3",
- "serde",
- "serde-saphyr",
- "serde_json",
- "thiserror 2.0.21",
- "time",
- "unicode-normalization",
-]
-
-[[package]]
-name = "memory-server"
-version = "0.2.1"
-dependencies = [
- "anyhow",
- "axum",
- "base64 0.22.1",
- "bytes",
- "clap",
- "futures-util",
- "governor",
- "memory-api",
- "memory-ops",
- "object_store",
- "rand",
- "reqwest",
- "rmcp",
- "rust-embed",
- "serde",
- "serde_json",
- "sha2",
- "similar",
- "sqlx",
- "subtle",
- "tempfile",
- "thiserror 2.0.21",
- "time",
- "tokio",
- "tokio-util",
- "tower",
- "tower-http 0.7.1",
- "tracing",
- "tracing-subscriber",
- "unicode-normalization",
- "url",
- "utoipa",
- "webauthn-authenticator-rs",
- "webauthn-rs",
- "zip",
-]
-
-[[package]]
 name = "mime"
 version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2549,6 +2454,101 @@ name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
+
+[[package]]
+name = "openmemory-api"
+version = "0.3.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "time",
+ "utoipa",
+]
+
+[[package]]
+name = "openmemory-cli"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "apple-native-keyring-store",
+ "axum",
+ "base64 0.22.1",
+ "bytes",
+ "clap",
+ "clap_complete",
+ "futures-util",
+ "keyring-core",
+ "object_store",
+ "openmemory-api",
+ "openmemory-server",
+ "rand",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sqlx",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "url",
+ "windows-native-keyring-store",
+ "zbus-secret-service-keyring-store",
+]
+
+[[package]]
+name = "openmemory-ops"
+version = "0.3.0"
+dependencies = [
+ "schemars 1.2.3",
+ "serde",
+ "serde-saphyr",
+ "serde_json",
+ "thiserror 2.0.21",
+ "time",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "openmemory-server"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64 0.22.1",
+ "bytes",
+ "clap",
+ "futures-util",
+ "governor",
+ "object_store",
+ "openmemory-api",
+ "openmemory-ops",
+ "rand",
+ "reqwest",
+ "rmcp",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "sha2",
+ "similar",
+ "sqlx",
+ "subtle",
+ "tempfile",
+ "thiserror 2.0.21",
+ "time",
+ "tokio",
+ "tokio-util",
+ "tower",
+ "tower-http 0.7.1",
+ "tracing",
+ "tracing-subscriber",
+ "unicode-normalization",
+ "url",
+ "utoipa",
+ "webauthn-authenticator-rs",
+ "webauthn-rs",
+ "zip",
+]
 
 [[package]]
 name = "openssl-probe"

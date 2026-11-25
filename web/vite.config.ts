@@ -3,7 +3,7 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
-const apiOrigin = process.env["MEMORY_API_ORIGIN"] ?? "http://localhost:8080";
+const apiOrigin = process.env["OPENMEMORY_API_ORIGIN"] ?? "http://localhost:8080";
 const proxiedPaths = ["/api", "/mcp", "/oauth", "/.well-known", "/healthz"];
 
 export default defineConfig({

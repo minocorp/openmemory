@@ -16,7 +16,7 @@ export function agentSetups(origin: string): AgentSetup[] {
       id: "claude-code",
       label: "Claude Code",
       steps: [],
-      snippets: [{ label: "Command", text: `claude mcp add --transport http memory ${url}` }],
+      snippets: [{ label: "Command", text: `claude mcp add --transport http openmemory ${url}` }],
     },
     {
       id: "claude",
@@ -35,7 +35,10 @@ export function agentSetups(origin: string): AgentSetup[] {
       label: "Codex",
       steps: [],
       snippets: [
-        { label: "Commands", text: `codex mcp add memory --url ${url}\ncodex mcp login memory` },
+        {
+          label: "Commands",
+          text: `codex mcp add openmemory --url ${url}\ncodex mcp login openmemory`,
+        },
       ],
     },
     {
@@ -45,15 +48,15 @@ export function agentSetups(origin: string): AgentSetup[] {
       snippets: [
         {
           label: ".cursor/mcp.json",
-          text: JSON.stringify({ mcpServers: { memory: { url } } }, null, 2),
+          text: JSON.stringify({ mcpServers: { openmemory: { url } } }, null, 2),
         },
       ],
     },
     {
       id: "cli",
-      label: "memory CLI",
+      label: "OpenMemory CLI",
       steps: [],
-      snippets: [{ label: "Command", text: `memory auth login --host ${origin}` }],
+      snippets: [{ label: "Command", text: `openmemory auth login --host ${origin}` }],
     },
   ];
 }

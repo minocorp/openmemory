@@ -15,9 +15,9 @@ jobs:
       fail-fast: true
       matrix:
         image:
-          - name: memory
+          - name: openmemory
             context: .
-          - name: memory-postgres
+          - name: openmemory-postgres
             context: postgres
         platform:
           - arch: amd64
@@ -56,7 +56,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        image: [memory, memory-postgres]
+        image: [openmemory, openmemory-postgres]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8
@@ -110,16 +110,16 @@ jobs:
       - run: rustup target add ${{ matrix.target.triple }}
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y musl-tools cmake
-      - run: cargo build -p memory-cli --release --locked --target ${{ matrix.target.triple }}
+      - run: cargo build -p openmemory-cli --release --locked --target ${{ matrix.target.triple }}
         env:
           SQLX_OFFLINE: "true"
-      - run: tar -czf "memory-$TARGET.tar.gz" -C "target/$TARGET/release" memory
+      - run: tar -czf "openmemory-$TARGET.tar.gz" -C "target/$TARGET/release" openmemory
         env:
           TARGET: ${{ matrix.target.triple }}
       - uses: actions/upload-artifact@v7
         with:
           name: cli_${{ matrix.target.triple }}
-          path: memory-${{ matrix.target.triple }}.tar.gz
+          path: openmemory-${{ matrix.target.triple }}.tar.gz
           if-no-files-found: error
 
   attach:
@@ -137,6 +137,6 @@ jobs:
           pattern: cli_*
           merge-multiple: true
       - working-directory: assets
-        run: sha256sum memory-*.tar.gz > SHA256SUMS
+        run: sha256sum openmemory-*.tar.gz > SHA256SUMS
       - run: gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
       - run: gh release upload "$GITHUB_REF_NAME" assets/* --clobber

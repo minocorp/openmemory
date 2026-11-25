@@ -3,11 +3,11 @@ members = ["crates/*"]
 resolver = "3"
 
 [workspace.package]
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.100"
 license = "Apache-2.0"
-repository = "https://github.com/minodevss/memory"
+repository = "https://github.com/minocorp/openmemory"
 publish = false
 
 [workspace.dependencies]
@@ -21,9 +21,9 @@ clap_complete = { version = "4.6.12", default-features = false }
 futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
 governor = { version = "0.10.4", default-features = false, features = ["dashmap", "std"] }
 keyring-core = { version = "1.1.0", default-features = false }
-memory-api = { path = "crates/memory-api" }
-memory-ops = { path = "crates/memory-ops" }
-memory-server = { path = "crates/memory-server" }
+openmemory-api = { path = "crates/openmemory-api" }
+openmemory-ops = { path = "crates/openmemory-ops" }
+openmemory-server = { path = "crates/openmemory-server" }
 object_store = { version = "0.14.2", default-features = false, features = ["aws", "fs"] }
 rand = { version = "0.10.4", default-features = false, features = ["std", "std_rng"] }
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls"] }

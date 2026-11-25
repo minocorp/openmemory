@@ -1,6 +1,6 @@
 import { z } from "@/shared/lib/zod";
 
-const problemTypePrefix = "urn:memory:problem:";
+const problemTypePrefix = "urn:openmemory:problem:";
 
 const bodySchema = z.object({
   type: z.string(),
