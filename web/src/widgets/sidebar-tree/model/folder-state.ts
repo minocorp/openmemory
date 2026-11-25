@@ -1,6 +1,9 @@
 import { ancestorFolders } from "@/shared/lib/page-path";
+import { z } from "@/shared/lib/zod";
 
 export type FolderOverrides = Readonly<Record<string, boolean>>;
+
+export const folderOverridesSchema = z.record(z.string(), z.boolean());
 
 export function isFolderOpen(
   folder: string,

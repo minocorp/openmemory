@@ -57,6 +57,23 @@ test.describe.serial("shell", () => {
     await page.context().close();
   });
 
+  test("keeps the sidebar folders after a reload", async ({ browser }) => {
+    const { page } = await openAdminPage(browser);
+    await apiSend(page, {
+      method: "PUT",
+      path: "/api/pages?path=sidebar-e2e/Kept",
+      headers: { "If-None-Match": "*" },
+      json: { content: "The sidebar remembers this folder.\n" },
+    });
+    await page.goto("/");
+    const folder = page.getByRole("button", { name: /^sidebar-e2e/ });
+    await expect(folder).toHaveAttribute("aria-expanded", "false");
+    await folder.click();
+    await page.reload();
+    await expect(folder).toHaveAttribute("aria-expanded", "true");
+    await page.context().close();
+  });
+
   test("navigates with the phone tabs and opens the source file full screen", async ({
     browser,
   }) => {

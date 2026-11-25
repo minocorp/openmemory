@@ -6,6 +6,7 @@ import { Suspense, useState } from "react";
 import { buildTreeNodes, treeQuery } from "@/entities/tree";
 import { CreatePageDialog } from "@/features/manage-page";
 import { cn } from "@/shared/lib/cn";
+import { readStored, writeStored } from "@/shared/lib/local-storage";
 import { pagePathFromPathname, parentFolder } from "@/shared/lib/page-path";
 import { openSearch } from "@/shared/lib/search-palette";
 import { Brand } from "@/shared/ui/brand";
@@ -13,7 +14,12 @@ import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 import { rowStyle } from "../config/row-style";
-import { revealSelection, type FolderOverrides } from "../model/folder-state";
+import { storageKeys } from "../config/storage-keys";
+import {
+  folderOverridesSchema,
+  revealSelection,
+  type FolderOverrides,
+} from "../model/folder-state";
 import { TreeItem } from "./tree-item";
 import { UserMenu } from "./user-menu";
 
@@ -36,7 +42,7 @@ function TreePanel({ className, isSidebar = false }: TreePanelProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const selectedPath = pagePathFromPathname(pathname);
   const [isCreating, setIsCreating] = useState(false);
-  const [overrides, setOverrides] = useState<FolderOverrides>({});
+  const [overrides, setOverrides] = useState(() => storedOverrides(selectedPath));
   const [revealedFor, setRevealedFor] = useState(selectedPath);
 
   if (revealedFor !== selectedPath) {
@@ -46,8 +52,11 @@ function TreePanel({ className, isSidebar = false }: TreePanelProps) {
     }
   }
 
-  const toggleFolder = (folder: string, isOpen: boolean) =>
-    setOverrides((previous) => ({ ...previous, [folder]: isOpen }));
+  const toggleFolder = (folder: string, isOpen: boolean) => {
+    const next = { ...overrides, [folder]: isOpen };
+    setOverrides(next);
+    writeStored(storageKeys.folders, next);
+  };
 
   return (
     <aside className={cn("flex flex-col", className)}>
@@ -117,6 +126,11 @@ function SearchButton() {
       <kbd className="font-sans text-xs text-muted-foreground max-sm:hidden">{searchShortcut}</kbd>
     </button>
   );
+}
+
+function storedOverrides(selectedPath: string | null): FolderOverrides {
+  const stored = readStored(storageKeys.folders, folderOverridesSchema) ?? {};
+  return selectedPath ? revealSelection(stored, selectedPath) : stored;
 }
 
 function newPageFolder(selectedPath: string | null): string {
