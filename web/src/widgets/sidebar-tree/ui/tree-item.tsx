@@ -60,6 +60,7 @@ export function TreeItem({ node, depth, selectedPath, overrides, onToggle }: Tre
   return (
     <li>
       <Link
+        ref={isSelected ? revealRow : undefined}
         to="/p/$"
         params={{ _splat: node.path }}
         className={cn(rowStyle, isSelected && "bg-sidebar-accent font-medium")}
@@ -75,4 +76,8 @@ export function TreeItem({ node, depth, selectedPath, overrides, onToggle }: Tre
       </Link>
     </li>
   );
+}
+
+function revealRow(row: HTMLAnchorElement | null) {
+  row?.scrollIntoView({ block: "nearest" });
 }
