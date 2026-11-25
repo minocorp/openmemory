@@ -18,20 +18,18 @@ import { TreeItem } from "./tree-item";
 import { UserMenu } from "./user-menu";
 type TreePanelProps = {
   className?: string;
-  hasUserMenu?: boolean;
+  isSidebar?: boolean;
 };
 
 export function SidebarTree() {
-  return (
-    <TreePanel className="hidden h-svh w-62 shrink-0 border-r bg-sidebar sm:flex" hasUserMenu />
-  );
+  return <TreePanel className="hidden h-svh w-62 shrink-0 border-r bg-sidebar sm:flex" isSidebar />;
 }
 
 export function PagesPanel() {
   return <TreePanel className="h-full bg-background" />;
 }
 
-function TreePanel({ className, hasUserMenu = false }: TreePanelProps) {
+function TreePanel({ className, isSidebar = false }: TreePanelProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const selectedPath = pagePathFromPathname(pathname);
   const [isCreating, setIsCreating] = useState(false);
@@ -66,14 +64,14 @@ function TreePanel({ className, hasUserMenu = false }: TreePanelProps) {
         <SearchButton />
       </div>
       <nav aria-label="Pages and files" className="flex min-h-0 flex-1 flex-col">
-        {hasUserMenu ? <SectionLinks /> : null}
+        {isSidebar ? <SectionLinks /> : null}
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pt-1 pb-4">
           <Suspense fallback={<TreeSkeleton />}>
             <TreeNodes selectedPath={selectedPath} overrides={overrides} onToggle={toggleFolder} />
           </Suspense>
         </div>
       </nav>
-      {hasUserMenu ? (
+      {isSidebar ? (
         <div className="p-2">
           <Suspense fallback={<Skeleton className="h-8" />}>
             <UserMenu />
