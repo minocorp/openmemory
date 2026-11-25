@@ -25,6 +25,7 @@ openmemory-api = { path = "crates/openmemory-api" }
 openmemory-ops = { path = "crates/openmemory-ops" }
 openmemory-server = { path = "crates/openmemory-server" }
 object_store = { version = "0.14.2", default-features = false, features = ["aws", "fs"] }
+pulldown-cmark = { version = "0.13.6", default-features = false }
 rand = { version = "0.10.4", default-features = false, features = ["std", "std_rng"] }
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls"] }
 rmcp = { version = "3.11.0", default-features = false }
