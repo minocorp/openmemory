@@ -14,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { MarkdownView } from "@/shared/ui/markdown-editor";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 import { PdfPage } from "./pdf-page";
@@ -96,6 +97,11 @@ export function FileViewer({ file, page, quote, onPageChange, onClose }: FileVie
             className="block size-full bg-white"
           />
         ) : null}
+        {preview === "markdown" ? (
+          <Suspense fallback={<Skeleton className="m-4 h-40" />}>
+            <MarkdownContent file={file} quote={quote} />
+          </Suspense>
+        ) : null}
         {preview === "text" ? (
           <Suspense fallback={<Skeleton className="m-4 h-40" />}>
             <TextContent id={file.id} quote={quote} />
@@ -108,6 +114,21 @@ export function FileViewer({ file, page, quote, onPageChange, onClose }: FileVie
         ) : null}
       </div>
     </section>
+  );
+}
+
+function MarkdownContent({ file, quote }: { file: FileInfo; quote: string | null }) {
+  const { data: text } = useSuspenseQuery(fileTextQuery(file.id));
+  const navigate = useNavigate();
+  return (
+    <div className="m-4 rounded-md border bg-background px-6 py-5">
+      <MarkdownView
+        text={text}
+        quote={quote}
+        label={baseName(file.path)}
+        onOpenLink={(path) => void navigate({ to: "/p/$", params: { _splat: path } })}
+      />
+    </div>
   );
 }
 

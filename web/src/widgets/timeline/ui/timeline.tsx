@@ -4,6 +4,7 @@ import type { Page, TimelineEntry } from "@/entities/page";
 import { TimelineAddForm } from "@/features/append-timeline";
 import { cn } from "@/shared/lib/cn";
 import { baseName } from "@/shared/lib/page-path";
+import { InlineMarkdown } from "@/shared/ui/inline-markdown";
 
 type FileSource = NonNullable<TimelineEntry["file"]>;
 
@@ -12,9 +13,16 @@ type TimelineProps = {
   changedLines: ReadonlySet<string>;
   openFile: { path: string; page: number | undefined } | null;
   onOpenSource: (source: FileSource) => void;
+  onOpenLink: (path: string) => void;
 };
 
-export function Timeline({ page, changedLines, openFile, onOpenSource }: TimelineProps) {
+export function Timeline({
+  page,
+  changedLines,
+  openFile,
+  onOpenSource,
+  onOpenLink,
+}: TimelineProps) {
   const entries = page.timeline.toReversed();
   return (
     <section aria-labelledby="timeline-heading" className="mt-12 border-t pt-6">
@@ -30,6 +38,7 @@ export function Timeline({ page, changedLines, openFile, onOpenSource }: Timelin
             isChanged={changedLines.has(`${entry.date} | ${entry.source} — ${entry.text}`)}
             isOpen={isOpenSource(entry, openFile)}
             onOpenSource={onOpenSource}
+            onOpenLink={onOpenLink}
           />
         ))}
       </ol>
@@ -46,9 +55,10 @@ type TimelineRowProps = {
   isChanged: boolean;
   isOpen: boolean;
   onOpenSource: (source: FileSource) => void;
+  onOpenLink: (path: string) => void;
 };
 
-function TimelineRow({ entry, isChanged, isOpen, onOpenSource }: TimelineRowProps) {
+function TimelineRow({ entry, isChanged, isOpen, onOpenSource, onOpenLink }: TimelineRowProps) {
   return (
     <li className="flex gap-3 py-1.5 text-md max-sm:text-sm">
       <time
@@ -58,7 +68,9 @@ function TimelineRow({ entry, isChanged, isOpen, onOpenSource }: TimelineRowProp
         {entry.date}
       </time>
       <span className="min-w-0 flex-1">
-        <span className={cn("rounded-sm", isChanged && "bg-highlight px-0.5")}>{entry.text}</span>
+        <span className={cn("rounded-sm", isChanged && "bg-highlight px-0.5")}>
+          <InlineMarkdown text={entry.text} onOpenLink={onOpenLink} />
+        </span>
         <SourceChip entry={entry} isOpen={isOpen} onOpenSource={onOpenSource} />
       </span>
     </li>

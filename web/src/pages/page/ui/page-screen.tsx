@@ -37,6 +37,7 @@ export function PageScreen({ id, search, onSearchChange }: PageScreenProps) {
   const unseen = changes ? unseenChangesOfPage(changes, id) : null;
   const isViewingChanges = Boolean(unseen && search.changes);
   const changedLines = unseen && isViewingChanges ? unseen.addedLines : noChangedLines;
+  const openPage = (path: string) => void navigate({ to: "/p/$", params: { _splat: path } });
   const linkTargets = [
     ...(tree?.pages.map((entry) => ({ path: entry.path, kind: "page" as const })) ?? []),
     ...(tree?.files.map((entry) => ({ path: entry.path, kind: "file" as const })) ?? []),
@@ -67,13 +68,14 @@ export function PageScreen({ id, search, onSearchChange }: PageScreenProps) {
                 page={page}
                 changedLines={changedLines}
                 linkTargets={linkTargets}
-                onOpenLink={(path) => void navigate({ to: "/p/$", params: { _splat: path } })}
+                onOpenLink={openPage}
               />
             </Suspense>
             <Timeline
               page={page}
               changedLines={changedLines}
               openFile={search.file ? { path: search.file, page: search.fpage } : null}
+              onOpenLink={openPage}
               onOpenSource={(source) =>
                 onSearchChange({
                   ...search,
