@@ -2457,7 +2457,7 @@ checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
 name = "openmemory-api"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -2467,7 +2467,7 @@ dependencies = [
 
 [[package]]
 name = "openmemory-cli"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "apple-native-keyring-store",
@@ -2498,7 +2498,7 @@ dependencies = [
 
 [[package]]
 name = "openmemory-ops"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "schemars 1.2.3",
  "serde",
@@ -2511,7 +2511,7 @@ dependencies = [
 
 [[package]]
 name = "openmemory-server"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "axum",
