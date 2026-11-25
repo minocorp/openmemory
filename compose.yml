@@ -1,37 +1,37 @@
 x-postgres-image: &postgres-image
   build: postgres
-  image: ghcr.io/minodevss/memory-postgres:main
+  image: ghcr.io/minocorp/openmemory-postgres:main
 
 x-backup-environment: &backup-environment
-  MEMORY_BACKUP_PASSPHRASE: ${MEMORY_BACKUP_PASSPHRASE:?set MEMORY_BACKUP_PASSPHRASE in .env}
-  MEMORY_BACKUP_RETENTION_DAYS:
-  MEMORY_BACKUP_S3_ENDPOINT:
-  MEMORY_BACKUP_S3_BUCKET:
-  MEMORY_BACKUP_S3_REGION:
-  MEMORY_BACKUP_S3_ACCESS_KEY:
-  MEMORY_BACKUP_S3_SECRET_KEY:
-  MEMORY_BACKUP_S3_URI_STYLE:
-  MEMORY_S3_BUCKET:
+  OPENMEMORY_BACKUP_PASSPHRASE: ${OPENMEMORY_BACKUP_PASSPHRASE:?set OPENMEMORY_BACKUP_PASSPHRASE in .env}
+  OPENMEMORY_BACKUP_RETENTION_DAYS:
+  OPENMEMORY_BACKUP_S3_ENDPOINT:
+  OPENMEMORY_BACKUP_S3_BUCKET:
+  OPENMEMORY_BACKUP_S3_REGION:
+  OPENMEMORY_BACKUP_S3_ACCESS_KEY:
+  OPENMEMORY_BACKUP_S3_SECRET_KEY:
+  OPENMEMORY_BACKUP_S3_URI_STYLE:
+  OPENMEMORY_S3_BUCKET:
 
 services:
   server:
-    image: ghcr.io/minodevss/memory:main
+    image: ghcr.io/minocorp/openmemory:main
     build: .
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://memory:${MEMORY_DB_PASSWORD:?set MEMORY_DB_PASSWORD in .env}@postgres:5432/memory
-      MEMORY_PUBLIC_URL: ${MEMORY_PUBLIC_URL:?set MEMORY_PUBLIC_URL in .env}
-      MEMORY_BACKUP_STATUS_FILE: /backup/status.json
-      MEMORY_TIMEZONE:
-      MEMORY_TRUSTED_PROXIES:
-      MEMORY_MAX_UPLOAD_BYTES:
-      MEMORY_S3_ENDPOINT:
-      MEMORY_S3_BUCKET:
-      MEMORY_S3_REGION:
-      MEMORY_S3_ACCESS_KEY:
-      MEMORY_S3_SECRET_KEY:
+      DATABASE_URL: postgres://openmemory:${OPENMEMORY_DB_PASSWORD:?set OPENMEMORY_DB_PASSWORD in .env}@postgres:5432/openmemory
+      OPENMEMORY_PUBLIC_URL: ${OPENMEMORY_PUBLIC_URL:?set OPENMEMORY_PUBLIC_URL in .env}
+      OPENMEMORY_BACKUP_STATUS_FILE: /backup/status.json
+      OPENMEMORY_TIMEZONE:
+      OPENMEMORY_TRUSTED_PROXIES:
+      OPENMEMORY_MAX_UPLOAD_BYTES:
+      OPENMEMORY_S3_ENDPOINT:
+      OPENMEMORY_S3_BUCKET:
+      OPENMEMORY_S3_REGION:
+      OPENMEMORY_S3_ACCESS_KEY:
+      OPENMEMORY_S3_SECRET_KEY:
     ports:
-      - "${MEMORY_HTTP_BIND:-127.0.0.1:8080}:8080"
+      - "${OPENMEMORY_HTTP_BIND:-127.0.0.1:8080}:8080"
     volumes:
       - blobs:/blobs
       - backup:/backup:ro
@@ -57,21 +57,21 @@ services:
       - -c
       - archive_mode=on
       - -c
-      - archive_command=pgbackrest --stanza=memory archive-push %p
+      - archive_command=pgbackrest --stanza=openmemory archive-push %p
       - -c
       - archive_timeout=60
     environment:
       <<: *backup-environment
-      POSTGRES_USER: memory
-      POSTGRES_PASSWORD: ${MEMORY_DB_PASSWORD:?set MEMORY_DB_PASSWORD in .env}
-      POSTGRES_DB: memory
+      POSTGRES_USER: openmemory
+      POSTGRES_PASSWORD: ${OPENMEMORY_DB_PASSWORD:?set OPENMEMORY_DB_PASSWORD in .env}
+      POSTGRES_DB: openmemory
       POSTGRES_INITDB_ARGS: --data-checksums
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - postgres-socket:/var/run/postgresql
       - backup:/backup
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U memory -d memory"]
+      test: ["CMD-SHELL", "pg_isready -U openmemory -d openmemory"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -82,7 +82,7 @@ services:
     <<: *postgres-image
     restart: unless-stopped
     user: postgres
-    command: ["memory-backup"]
+    command: ["openmemory-backup"]
     environment:
       <<: *backup-environment
     volumes:
@@ -104,7 +104,7 @@ services:
     <<: *postgres-image
     profiles: [restore]
     user: root
-    command: ["memory-restore"]
+    command: ["openmemory-restore"]
     environment:
       <<: *backup-environment
     volumes:

@@ -20,7 +20,7 @@ const copy = {
     title: "Create the first account",
     description: "This account becomes the administrator.",
   },
-  invite: { title: "Join Memory", description: "Choose a username and create a passkey." },
+  invite: { title: "Join OpenMemory", description: "Choose a username and create a passkey." },
 } as const;
 
 export function SignUpFlow({ kind, token, onDone }: SignUpFlowProps) {

@@ -2,15 +2,15 @@ services:
   postgres:
     build: postgres
     environment:
-      POSTGRES_USER: memory
-      POSTGRES_PASSWORD: memory
-      POSTGRES_DB: memory
+      POSTGRES_USER: openmemory
+      POSTGRES_PASSWORD: openmemory
+      POSTGRES_DB: openmemory
     ports:
       - "127.0.0.1:5441:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U memory -d memory"]
+      test: ["CMD-SHELL", "pg_isready -U openmemory -d openmemory"]
       interval: 5s
       timeout: 3s
       retries: 10

@@ -93,7 +93,7 @@ Source: https://tanstack.com/query/latest/docs/framework/react/guides/query-opti
 Source: https://openapi-ts.dev/openapi-fetch/
 
 - Types are generated from the server's OpenAPI by `openapi-typescript` into `shared/api/schema.d.ts`; never hand-edit, never hand-write a DTO type.
-- Regenerate with `pnpm gen:api` (the server prints its OpenAPI document with `memory-server openapi`; `pnpm gen:types` rebuilds only the types from `web/openapi.json`). `web/openapi.json` and the generated file are committed. The rust CI job fails when the server's document differs from `web/openapi.json`; the web job fails when `pnpm gen:types` changes the generated file.
+- Regenerate with `pnpm gen:api` (the server prints its OpenAPI document with `openmemory-server openapi`; `pnpm gen:types` rebuilds only the types from `web/openapi.json`). `web/openapi.json` and the generated file are committed. The rust CI job fails when the server's document differs from `web/openapi.json`; the web job fails when `pnpm gen:types` changes the generated file.
 - `openapi-typescript` (7.13.0, latest) drives the TypeScript 5 compiler API, which TypeScript 7 does not provide ([openapi-ts/openapi-typescript#2841](https://github.com/openapi-ts/openapi-typescript/issues/2841)). A pnpm override of its peer does not hold on a clean install, so the generator lives in its own workspace package, `web/tools/openapi-codegen`, with TypeScript 5.9.3 as its only compiler; the app keeps 7. Drop the package once a release supports 7.
 - One `createClient<paths>()` instance in `shared/api`; entities wrap calls (`getPage`, `listVersions`).
 - Wrappers return `data` and throw a typed `ApiError` when `error` is set; callers never inspect `response.status`.
@@ -177,7 +177,7 @@ Scripts:
 
 ```json
 {
-  "gen:openapi": "SQLX_OFFLINE=true cargo run --locked -q -p memory-server -- openapi > openapi.json.tmp && mv openapi.json.tmp openapi.json",
+  "gen:openapi": "SQLX_OFFLINE=true cargo run --locked -q -p openmemory-server -- openapi > openapi.json.tmp && mv openapi.json.tmp openapi.json",
   "gen:types": "pnpm --dir tools/openapi-codegen exec openapi-typescript ../../openapi.json --empty-objects-unknown -o ../../src/shared/api/schema.d.ts",
   "gen:api": "pnpm gen:openapi && pnpm gen:types",
   "typecheck": "tsr generate && tsc --noEmit",
@@ -295,4 +295,4 @@ FSD overrides in `.oxlintrc.json` (one per layer, generated from the same shape;
 
 - TanStack Router file routes live in `src/app/routes`, configured in `tsr.config.json` (read by both the Vite plugin and `tsr generate`); the generated `routeTree.gen.ts` sits in `app`, is gitignored, and is ignored by lint and format. `tsr generate` runs before `typecheck` and `check` because the tree does not exist in a fresh clone.
 - shadcn: `npx shadcn@latest init -b base -p nova` (Base UI, preset `nova`); `components.json` aliases point `ui` to `@/shared/ui` and `utils` to `@/shared/lib/cn`. The CLI writes flat files, so move each added component to `shared/ui/<name>/<name>.tsx` with an `index.ts` and import `cn` from `@/shared/lib/cn`.
-- CI runs `pnpm check`, `pnpm test`, `pnpm e2e` and `pnpm gen:types && git diff --exit-code`; the rust job compares `memory-server openapi` with `web/openapi.json`.
+- CI runs `pnpm check`, `pnpm test`, `pnpm e2e` and `pnpm gen:types && git diff --exit-code`; the rust job compares `openmemory-server openapi` with `web/openapi.json`.

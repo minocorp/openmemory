@@ -21,16 +21,16 @@ test.describe.serial("home", () => {
     await expect(panel.getByRole("button", { name: "Create start page" })).toBeVisible();
     await panel.getByText("Claude Code", { exact: true }).click();
     await expect(page.getByLabel("Claude Code Command", { exact: true })).toHaveText(
-      /^claude mcp add --transport http memory http:\/\/localhost:\d+\/mcp$/,
+      /^claude mcp add --transport http openmemory http:\/\/localhost:\d+\/mcp$/,
     );
     await page.getByRole("button", { name: "Copy Claude Code Command" }).click();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(
-      /^claude mcp add --transport http memory /,
+      /^claude mcp add --transport http openmemory /,
     );
     await panel.getByText("Cursor", { exact: true }).click();
-    await panel.getByText("memory CLI", { exact: true }).click();
-    await expect(page.getByLabel("memory CLI Command", { exact: true })).toContainText(
-      "memory auth login --host http://localhost",
+    await panel.getByText("OpenMemory CLI", { exact: true }).click();
+    await expect(page.getByLabel("OpenMemory CLI Command", { exact: true })).toContainText(
+      "openmemory auth login --host http://localhost",
     );
     await shoot(page, "30-home-first-run");
   });

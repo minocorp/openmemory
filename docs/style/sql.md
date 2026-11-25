@@ -67,7 +67,7 @@ CREATE UNIQUE INDEX pages_path_live_key ON pages (path) WHERE deleted_at IS NULL
 - Do not add an index that duplicates the leading columns of another.
 
 ## Migrations
-- Location `crates/memory-server/migrations/`, forward-only, created with `sqlx migrate add --sequential <name>` ([sqlx-cli](https://docs.rs/sqlx-cli)), producing `0001_name.sql`.
+- Location `crates/openmemory-server/migrations/`, forward-only, created with `sqlx migrate add --sequential <name>` ([sqlx-cli](https://docs.rs/sqlx-cli)), producing `0001_name.sql`.
 - Name = verb + object, snake_case: `0007_add_page_links.sql`, `0008_index_files_sha256.sql`.
 - One concern per file: one table, one index, or one data backfill.
 - Never edit or renumber an applied migration; sqlx stores a checksum and refuses a mismatch ([Migrator](https://docs.rs/sqlx/latest/sqlx/migrate/struct.Migrator.html)). Fix with a new migration.

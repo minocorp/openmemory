@@ -22,6 +22,6 @@ export default defineConfig({
         command: `pnpm dev --port ${webPort} --strictPort`,
         url: webOrigin,
         reuseExistingServer: false,
-        env: { MEMORY_API_ORIGIN: apiOrigin },
+        env: { OPENMEMORY_API_ORIGIN: apiOrigin },
       },
 });

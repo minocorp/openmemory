@@ -118,8 +118,8 @@ Follows [API Guidelines naming](https://rust-lang.github.io/api-guidelines/namin
 ## Visibility and API surface
 
 - Default to private; widen to `pub(crate)`, then `pub` only when another crate needs it.
-- In `memory-server` and `memory-cli` (binaries) nothing is `pub` below the crate root; `unreachable_pub` enforces it.
-- `memory-ops` exposes a small deliberate API from `lib.rs` (`pub use` of the few types); internals stay `pub(crate)`.
+- In `openmemory-server` and `openmemory-cli` (binaries) nothing is `pub` below the crate root; `unreachable_pub` enforces it.
+- `openmemory-ops` exposes a small deliberate API from `lib.rs` (`pub use` of the few types); internals stay `pub(crate)`.
 - Struct fields private by default ([C-STRUCT-PRIVATE](https://rust-lang.github.io/api-guidelines/future-proofing.html#c-struct-private)); public fields only on plain data records with no invariants.
 - Enforce invariants in constructors (`Path::parse`) so invalid values cannot exist; do not re-validate downstream.
 - `#[derive(Debug)]` on every type; hand-write `Debug` for secrets (tokens, keys, DB URL) so they print `[redacted]`.
@@ -132,8 +132,8 @@ Follows [API Guidelines naming](https://rust-lang.github.io/api-guidelines/namin
 - One main concept per file, named after it (`page_path.rs` holds `PagePath`).
 - Soft cap 300 lines per file; when a file passes it, split the module. Never add divider comments.
 - `lib.rs` and `main.rs` only declare modules, re-export, and wire; `main` parses config, inits tracing, calls `run().await`.
-- Dependency direction: `memory-cli -> memory-ops <- memory-server`; the binaries never depend on each other.
-- `memory-ops` is pure logic: no `sqlx`, `axum`, or runtime-coupled types; it must compile and test without a database.
+- Dependency direction: `openmemory-cli -> openmemory-ops <- openmemory-server`; the binaries never depend on each other.
+- `openmemory-ops` is pure logic: no `sqlx`, `axum`, or runtime-coupled types; it must compile and test without a database.
 - Import by `crate::` path, not `super::super::`; `use super::*` only inside `#[cfg(test)] mod tests`.
 - Let rustfmt sort imports; do not hand-group them.
 
@@ -141,9 +141,9 @@ Follows [API Guidelines naming](https://rust-lang.github.io/api-guidelines/namin
 
 See [C-GOOD-ERR](https://rust-lang.github.io/api-guidelines/interoperability.html#c-good-err), [thiserror](https://docs.rs/thiserror), [anyhow](https://docs.rs/anyhow).
 
-- `memory-ops` and every module of `memory-server`: typed errors with `thiserror`; one enum per module, variants named by cause.
-- `anyhow` only in binary entry code (`main`, CLI command runners, startup wiring); never in a signature of `memory-ops` or a handler.
-- `memory-server` has one `AppError` implementing `IntoResponse`; handlers return `Result<T, AppError>` ([axum errors](https://docs.rs/axum/latest/axum/error_handling/index.html)).
+- `openmemory-ops` and every module of `openmemory-server`: typed errors with `thiserror`; one enum per module, variants named by cause.
+- `anyhow` only in binary entry code (`main`, CLI command runners, startup wiring); never in a signature of `openmemory-ops` or a handler.
+- `openmemory-server` has one `AppError` implementing `IntoResponse`; handlers return `Result<T, AppError>` ([axum errors](https://docs.rs/axum/latest/axum/error_handling/index.html)).
 - Map internal errors to status codes in one place; the response body never contains SQL, paths, or `source` chains.
 - Error messages are lowercase, no trailing period, no wrapped cause text (the cause is `#[source]`).
 - `#[from]` only for a lossless 1:1 wrap; otherwise map explicitly so context is not lost.
@@ -157,7 +157,7 @@ See [C-GOOD-ERR](https://rust-lang.github.io/api-guidelines/interoperability.htm
 
 See the [tokio tutorial](https://tokio.rs/tokio/tutorial) and [what is blocking](https://ryhl.io/blog/async-what-is-blocking/).
 
-- `#[tokio::main]` and `#[tokio::test]` only in binaries and tests; `memory-ops` has no runtime.
+- `#[tokio::main]` and `#[tokio::test]` only in binaries and tests; `openmemory-ops` has no runtime.
 - Never block a worker: no `std::fs`, `std::thread::sleep`, sync `Command`, or loops over 100 microseconds without an `.await`.
 - Blocking or CPU-heavy work goes through [`spawn_blocking`](https://docs.rs/tokio/latest/tokio/task/fn.spawn_blocking.html); files via `tokio::fs`.
 - External processes (`pdftotext`): `tokio::process::Command` with `kill_on_drop(true)` inside `tokio::time::timeout`.
@@ -175,11 +175,11 @@ See the [tokio tutorial](https://tokio.rs/tokio/tutorial) and [what is blocking]
 - REST handlers and MCP tools call the same service functions; tool glue has no logic of its own.
 - Each domain module exposes `fn router() -> Router<AppState>`; `main` merges them.
 - `AppState` is `Clone` with `Arc` fields; extract with `State<AppState>`; body-consuming extractor goes last ([order](https://docs.rs/axum/latest/axum/extract/index.html#the-order-of-extractors)).
-- Request/response/tool-parameter types are separate from DB row types and from `memory-ops` types; convert with `From`.
+- Request/response/tool-parameter types are separate from DB row types and from `openmemory-ops` types; convert with `From`.
 - Text that LLMs or API consumers read (MCP tool descriptions, OpenAPI summaries) is data: put it in the macro attribute (`description = "..."`), not in `///`.
 - clap derive only: one `Cli` struct, one `Command` enum, one fn per subcommand; `main` returns `anyhow::Result<()>` once it can fail (clippy `unnecessary_wraps` rejects it before).
 - Server config comes from clap `#[arg(env = "...")]`; secrets are wrapped in a redacting newtype.
-- CLI output goes to stdout, diagnostics to stderr; the server and `memory-ops` never print, they use `tracing`.
+- CLI output goes to stdout, diagnostics to stderr; the server and `openmemory-ops` never print, they use `tracing`.
 - Object storage is built once and injected as `Arc<dyn ObjectStore>`; tests use `object_store::memory::InMemory`.
 
 ## Security
@@ -225,7 +225,7 @@ See [test organization](https://doc.rust-lang.org/book/ch11-03-test-organization
 - Integration tests in `crates/<crate>/tests/`, black-box through the public API or the `Router`.
 - DB tests use `#[sqlx::test]` (fresh database per test, migrations applied); never share state between tests.
 - Drive the app with `tower::ServiceExt::oneshot` on the `Router` ([axum example](https://github.com/tokio-rs/axum/blob/main/examples/testing/src/main.rs)); no real port binding.
-- `memory-ops` tests are pure and need no database; cover the grammar and diff/merge logic with table-driven cases.
+- `openmemory-ops` tests are pure and need no database; cover the grammar and diff/merge logic with table-driven cases.
 - Prefer real Postgres and `InMemory` object store over mocks; add a trait seam only for a real second implementation.
 - Tests may `unwrap`/`expect`; assert on values and error variants, not message strings.
 
