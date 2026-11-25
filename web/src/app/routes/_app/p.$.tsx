@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { pageSearchSchema, PageSkeleton, pathTargetQuery, PathScreen } from "@/pages/page";
-import { normalizePath } from "@/shared/lib/page-path";
+import { baseName, normalizePath } from "@/shared/lib/page-path";
+import { pageTitle } from "@/shared/lib/page-title";
 
 const pathOf = (params: { _splat?: string | undefined }) => normalizePath(params["_splat"] ?? "");
 
 export const Route = createFileRoute("/_app/p/$")({
+  head: ({ params }) => pageTitle(baseName(pathOf(params))),
   validateSearch: pageSearchSchema,
   loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(pathTargetQuery(pathOf(params))),

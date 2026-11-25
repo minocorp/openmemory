@@ -8,6 +8,7 @@ import { CreatePageDialog } from "@/features/manage-page";
 import { cn } from "@/shared/lib/cn";
 import { pagePathFromPathname, parentFolder } from "@/shared/lib/page-path";
 import { openSearch } from "@/shared/lib/search-palette";
+import { Brand } from "@/shared/ui/brand";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 
@@ -15,7 +16,6 @@ import { rowStyle } from "../config/row-style";
 import { revealSelection, type FolderOverrides } from "../model/folder-state";
 import { TreeItem } from "./tree-item";
 import { UserMenu } from "./user-menu";
-
 type TreePanelProps = {
   className?: string;
   hasUserMenu?: boolean;
@@ -51,7 +51,7 @@ function TreePanel({ className, hasUserMenu = false }: TreePanelProps) {
   return (
     <aside className={cn("flex flex-col", className)}>
       <div className="flex h-12 shrink-0 items-center justify-between pr-2 pl-4">
-        <span className="text-sm font-semibold tracking-tight">Memory</span>
+        <Brand />
         <Button
           variant="ghost"
           size="icon-sm"
