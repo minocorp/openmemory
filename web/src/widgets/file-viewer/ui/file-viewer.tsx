@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Download, MoreHorizontal, X } from "lucide-react";
 import { Suspense, useState } from "react";
 
-import { fileContentUrl, fileTextQuery, type FileInfo } from "@/entities/file";
+import { fileContentUrl, filePreview, fileTextQuery, type FileInfo } from "@/entities/file";
 import { meQuery } from "@/entities/user";
 import { PurgeDialog } from "@/features/purge";
 import { baseName } from "@/shared/lib/page-path";
@@ -27,7 +27,8 @@ type FileViewerProps = {
 };
 
 export function FileViewer({ file, page, quote, onPageChange, onClose }: FileViewerProps) {
-  const isPdf = file.mime === "application/pdf";
+  const preview = filePreview(file.mime);
+  const isPdf = preview === "pdf";
   const pageCount = Math.max(1, file.page_count);
   const current = Math.min(Math.max(1, page), pageCount);
   return (
@@ -80,19 +81,27 @@ export function FileViewer({ file, page, quote, onPageChange, onClose }: FileVie
       </header>
       <div className="min-h-0 flex-1 overflow-auto bg-muted">
         {isPdf ? <PdfPage url={fileContentUrl(file.id)} page={current} quote={quote} /> : null}
-        {file.mime.startsWith("image/") ? (
+        {preview === "image" ? (
           <img
             src={fileContentUrl(file.id)}
             alt={baseName(file.path)}
             className="mx-auto max-w-full p-4"
           />
         ) : null}
-        {file.mime.startsWith("text/") ? (
+        {preview === "page" ? (
+          <iframe
+            src={fileContentUrl(file.id)}
+            title={baseName(file.path)}
+            sandbox="allow-scripts"
+            className="block size-full bg-white"
+          />
+        ) : null}
+        {preview === "text" ? (
           <Suspense fallback={<Skeleton className="m-4 h-40" />}>
             <TextContent id={file.id} quote={quote} />
           </Suspense>
         ) : null}
-        {!isPdf && !file.mime.startsWith("image/") && !file.mime.startsWith("text/") ? (
+        {preview === "none" ? (
           <p className="p-6 text-sm text-muted-foreground">
             This file type has no preview. Use download to open it.
           </p>

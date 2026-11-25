@@ -7,25 +7,32 @@ pub(crate) enum FileKind {
     Image,
     Spreadsheet,
     Audio,
+    Document,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct AllowedMime {
-    essence: String,
+    essence: &'static str,
     kind: FileKind,
 }
+
+const UNTYPED: &str = "application/octet-stream";
 
 const ALLOWED: &[(&str, FileKind)] = &[
     ("application/pdf", FileKind::Pdf),
     ("text/plain", FileKind::Text),
     ("text/markdown", FileKind::Text),
     ("text/csv", FileKind::Text),
+    ("text/html", FileKind::Text),
+    ("application/xml", FileKind::Text),
+    ("text/xml", FileKind::Text),
     ("image/png", FileKind::Image),
     ("image/jpeg", FileKind::Image),
     ("image/gif", FileKind::Image),
     ("image/webp", FileKind::Image),
     ("image/heic", FileKind::Image),
     ("image/avif", FileKind::Image),
+    ("image/svg+xml", FileKind::Image),
     ("application/vnd.ms-excel", FileKind::Spreadsheet),
     (
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -44,6 +51,10 @@ const ALLOWED: &[(&str, FileKind)] = &[
     ("audio/ogg", FileKind::Audio),
     ("audio/flac", FileKind::Audio),
     ("audio/webm", FileKind::Audio),
+    (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        FileKind::Document,
+    ),
 ];
 
 const BY_EXTENSION: &[(&str, &str)] = &[
@@ -51,6 +62,9 @@ const BY_EXTENSION: &[(&str, &str)] = &[
     ("txt", "text/plain"),
     ("md", "text/markdown"),
     ("csv", "text/csv"),
+    ("html", "text/html"),
+    ("htm", "text/html"),
+    ("xml", "application/xml"),
     ("png", "image/png"),
     ("jpg", "image/jpeg"),
     ("jpeg", "image/jpeg"),
@@ -58,6 +72,7 @@ const BY_EXTENSION: &[(&str, &str)] = &[
     ("webp", "image/webp"),
     ("heic", "image/heic"),
     ("avif", "image/avif"),
+    ("svg", "image/svg+xml"),
     ("xls", "application/vnd.ms-excel"),
     (
         "xlsx",
@@ -71,6 +86,10 @@ const BY_EXTENSION: &[(&str, &str)] = &[
     ("ogg", "audio/ogg"),
     ("flac", "audio/flac"),
     ("webm", "audio/webm"),
+    (
+        "docx",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ),
 ];
 
 pub(crate) fn mime_for_path(path: &PagePath) -> Option<&'static str> {
@@ -83,21 +102,28 @@ pub(crate) fn mime_for_path(path: &PagePath) -> Option<&'static str> {
 }
 
 impl AllowedMime {
-    pub(crate) fn parse(input: &str) -> Option<Self> {
-        let essence = input
+    pub(crate) fn resolve(declared: &str, path: &PagePath) -> Option<Self> {
+        let essence = declared
             .split(';')
             .next()
             .unwrap_or_default()
             .trim()
             .to_ascii_lowercase();
+        if essence == UNTYPED {
+            return mime_for_path(path).and_then(Self::parse);
+        }
+        Self::parse(&essence)
+    }
+
+    fn parse(essence: &str) -> Option<Self> {
         ALLOWED
             .iter()
             .find(|(allowed, _)| *allowed == essence)
-            .map(|&(_, kind)| Self { essence, kind })
+            .map(|&(essence, kind)| Self { essence, kind })
     }
 
-    pub(crate) fn as_str(&self) -> &str {
-        &self.essence
+    pub(crate) fn as_str(&self) -> &'static str {
+        self.essence
     }
 
     pub(crate) fn kind(&self) -> FileKind {
@@ -109,11 +135,36 @@ impl AllowedMime {
 mod tests {
     use super::*;
 
+    fn resolve(declared: &str, path: &str) -> Option<AllowedMime> {
+        AllowedMime::resolve(declared, &PagePath::parse(path).unwrap())
+    }
+
     #[test]
     fn parameters_and_case_are_ignored() {
-        let mime = AllowedMime::parse("Text/CSV; charset=utf-8").unwrap();
+        let mime = resolve("Text/CSV; charset=utf-8", "a.csv").unwrap();
         assert_eq!(mime.as_str(), "text/csv");
         assert_eq!(mime.kind(), FileKind::Text);
+    }
+
+    #[test]
+    fn untyped_bytes_take_the_type_of_their_extension() {
+        let mime = resolve("application/octet-stream", "contracts/acme.DOCX").unwrap();
+        assert_eq!(mime.kind(), FileKind::Document);
+        assert_eq!(resolve("application/octet-stream", "a/noextension"), None);
+        assert_eq!(resolve("application/octet-stream", "a.tar.gz"), None);
+        assert_eq!(resolve("image/png", "a.md").unwrap().as_str(), "image/png");
+    }
+
+    #[test]
+    fn markup_is_accepted() {
+        for (declared, path) in [
+            ("text/html", "mockups/home.html"),
+            ("image/svg+xml", "brand/logo.svg"),
+            ("text/xml", "tax/invoice.xml"),
+            ("application/xml", "tax/invoice.xml"),
+        ] {
+            assert!(resolve(declared, path).is_some(), "{declared}");
+        }
     }
 
     #[test]
@@ -134,9 +185,9 @@ mod tests {
     }
 
     #[test]
-    fn scriptable_and_unknown_types_are_rejected() {
-        for input in ["image/svg+xml", "text/html", "application/zip", ""] {
-            assert!(AllowedMime::parse(input).is_none(), "{input}");
+    fn unknown_types_are_rejected() {
+        for input in ["application/zip", "application/javascript", ""] {
+            assert!(resolve(input, "a.zip").is_none(), "{input}");
         }
     }
 }

@@ -77,7 +77,7 @@ impl From<FilesError> for ToolError {
                 Self::rejected(format!("The file is over the {limit} byte limit."))
             }
             FilesError::UnsupportedMime => Self::rejected(
-                "This file type is not accepted. Use a pdf, text, markdown, csv, image, spreadsheet or audio extension.",
+                "This file type is not accepted. Use a pdf, text, markdown, csv, html, xml, image, svg, spreadsheet, docx or audio extension.",
             ),
             FilesError::InvalidText => Self::rejected("The text file is not valid UTF-8."),
             FilesError::Credential(pattern) => Self::rejected(format!(

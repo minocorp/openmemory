@@ -36,7 +36,7 @@ pub(in crate::mcp) async fn upload(
     };
     let mime = mime_for_path(&path).ok_or_else(|| {
         ToolError::rejected(
-            "The file extension is not accepted. Use pdf, txt, md, csv, png, jpg, gif, webp, heic, avif, xlsx, xls, ods, mp3, m4a, aac, wav, ogg, flac or webm.",
+            "The file extension is not accepted. Use pdf, txt, md, csv, html, htm, xml, png, jpg, gif, webp, heic, avif, svg, xlsx, xls, ods, docx, mp3, m4a, aac, wav, ogg, flac or webm.",
         )
     })?;
     state

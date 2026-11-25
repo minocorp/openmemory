@@ -7,7 +7,7 @@ pub const MAX_INLINE_UPLOAD_BYTES: usize = 1024 * 1024;
 #[schemars(transform = crate::schema::omit_null)]
 pub struct UploadInput {
     #[schemars(
-        description = "Path for the new file, for example `contracts/acme.pdf` or `transcripts/call-2026-11-20.txt`. The extension decides the file type: pdf, txt, md, csv, png, jpg, gif, webp, heic, avif, xlsx, xls, ods, mp3, m4a, aac, wav, ogg, flac, webm."
+        description = "Path for the new file, for example `contracts/acme.pdf` or `transcripts/call-2026-11-20.txt`. The extension decides the file type: pdf, txt, md, csv, html, htm, xml, png, jpg, gif, webp, heic, avif, svg, xlsx, xls, ods, docx, mp3, m4a, aac, wav, ogg, flac, webm."
     )]
     pub path: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]

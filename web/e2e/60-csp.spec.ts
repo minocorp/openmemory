@@ -41,6 +41,18 @@ test.describe("content security policy", () => {
     await expect(page.getByRole("region", { name: "File csp-e2e/doc.pdf" })).toBeVisible();
     await expect(page.locator(".textLayer span").first()).toBeVisible();
     await expect(page.locator(".cm-content")).toBeVisible();
+    await apiSend(page, {
+      method: "POST",
+      path: "/api/files?path=csp-e2e/mockup.html",
+      contentType: "text/html",
+      body: Buffer.from("<h1>Framed mockup</h1>"),
+    });
+    await page.goto("/p/csp-e2e/Page?file=csp-e2e%2Fmockup.html");
+    await expect(
+      page
+        .frameLocator('iframe[title="mockup.html"]')
+        .getByRole("heading", { name: "Framed mockup" }),
+    ).toBeVisible();
     for (const path of ["/", "/settings", "/settings?tab=people", "/settings?tab=system"]) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");

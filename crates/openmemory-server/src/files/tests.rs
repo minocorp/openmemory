@@ -258,7 +258,7 @@ async fn invalid_uploads_are_rejected_by_cause(pool: PgPool) {
     let too_big = FileContent::Bytes(Bytes::from(vec![b'a'; 1024 * 1024 + 1]));
     let cases = [
         ("a/../b", text("x"), "text/plain"),
-        ("a.html", text("x"), "text/html"),
+        ("a.zip", text("x"), "application/zip"),
         ("a.txt", text(""), "text/plain"),
         ("a.txt", too_big, "text/plain"),
         (

@@ -59,6 +59,11 @@ const typeLabels: Record<string, string> = {
   "text/plain": "Text",
   "text/markdown": "Markdown",
   "text/csv": "CSV",
+  "text/html": "HTML",
+  "application/xml": "XML",
+  "text/xml": "XML",
+  "image/svg+xml": "Image SVG",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word",
 };
 
 export function fileTypeLabel(mime: string): string {

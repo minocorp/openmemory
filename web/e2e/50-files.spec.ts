@@ -3,10 +3,12 @@ import { z } from "zod";
 
 import { openAdminPage, phoneViewport } from "./support/admin-session";
 import { connectAgent } from "./support/agent";
+import { apiSend } from "./support/api";
 import { simplePdf } from "./support/pdf";
 import { shoot } from "./support/screenshot";
 
 const linkReply = z.object({ upload_link: z.string() });
+const mockup = `<h1>Mockup</h1><p id="state"></p><script>document.getElementById("state").textContent = "Rendered by its script";</script>`;
 
 test.describe.serial("files", () => {
   let page: Page;
@@ -71,6 +73,20 @@ test.describe.serial("files", () => {
     await list.locator(`a[href="/p/files-e2e/terms.pdf"]`).click();
     await expect(page).toHaveURL(/\/p\/files-e2e\/terms\.pdf/);
     await expect(page.getByRole("region", { name: "File files-e2e/terms.pdf" })).toBeVisible();
+  });
+
+  test("previews an html mockup with its scripts in a sandboxed frame", async () => {
+    await apiSend(page, {
+      method: "POST",
+      path: "/api/files?path=files-e2e/mockup.html",
+      contentType: "text/html",
+      body: Buffer.from(mockup),
+    });
+    await page.goto("/p/files-e2e/mockup.html");
+    const frame = page.frameLocator('iframe[title="mockup.html"]');
+    await expect(frame.getByRole("heading", { name: "Mockup" })).toBeVisible();
+    await expect(frame.getByText("Rendered by its script")).toBeVisible();
+    await shoot(page, "65-files-html");
   });
 
   test("deletes a file from its menu", async () => {

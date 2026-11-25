@@ -21,7 +21,7 @@ impl Files {
         if !actor.scope.can_write(&path) {
             return Err(FilesError::Forbidden);
         }
-        let mime = AllowedMime::parse(mime).ok_or(FilesError::UnsupportedMime)?;
+        let mime = AllowedMime::resolve(mime, &path).ok_or(FilesError::UnsupportedMime)?;
         let bytes = content.into_bytes();
         self.check_size(&bytes)?;
         self.ensure_path_free(&path).await?;
@@ -97,7 +97,9 @@ async fn extract_pages(mime: &AllowedMime, bytes: &Bytes) -> Result<Vec<String>,
             }
             Ok(vec![text.replace('\0', "")])
         }
-        FileKind::Image | FileKind::Spreadsheet | FileKind::Audio => Ok(Vec::new()),
+        FileKind::Image | FileKind::Spreadsheet | FileKind::Audio | FileKind::Document => {
+            Ok(Vec::new())
+        }
     }
 }
 

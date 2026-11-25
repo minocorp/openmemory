@@ -1,11 +1,8 @@
-use std::fmt::Write;
+mod headers;
 
 use axum::body::{Body, to_bytes};
 use axum::extract::{Path, Query, State};
-use axum::http::header::{
-    ACCEPT_RANGES, CACHE_CONTROL, CONTENT_DISPOSITION, CONTENT_LENGTH, CONTENT_RANGE,
-    CONTENT_SECURITY_POLICY, CONTENT_TYPE, ETAG, IF_RANGE, LOCATION, RANGE, X_CONTENT_TYPE_OPTIONS,
-};
+use axum::http::header::{CONTENT_LENGTH, CONTENT_RANGE, CONTENT_TYPE, IF_RANGE, LOCATION, RANGE};
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
@@ -16,6 +13,7 @@ use serde::Deserialize;
 use utoipa::OpenApi;
 
 use crate::api::error::ApiError;
+use crate::api::files::headers::with_content_headers;
 use crate::api::precondition::matches_none_match;
 use crate::api::range::{self, RangeRequest};
 use crate::auth::{ApiSession, BinaryApiSession};
@@ -224,10 +222,11 @@ async fn get_file_content(
     let record = state.files().metadata(&session.actor, &file).await?;
     let tag = file_etag(&record);
     if matches_none_match(&headers, &tag) {
-        return Ok(with_common_headers(
+        return Ok(with_content_headers(
             StatusCode::NOT_MODIFIED.into_response(),
             &record,
             &tag,
+            &headers,
             query.download,
         ));
     }
@@ -254,7 +253,13 @@ async fn get_file_content(
             if let Ok(value) = HeaderValue::from_str(&format!("bytes */{size}")) {
                 response.headers_mut().insert(CONTENT_RANGE, value);
             }
-            return Ok(with_common_headers(response, &record, &tag, query.download));
+            return Ok(with_content_headers(
+                response,
+                &record,
+                &tag,
+                &headers,
+                query.download,
+            ));
         }
     };
     let served = download.record;
@@ -266,10 +271,11 @@ async fn get_file_content(
     if let Some(value) = content_range.and_then(|text| HeaderValue::from_str(&text).ok()) {
         response.headers_mut().insert(CONTENT_RANGE, value);
     }
-    Ok(with_common_headers(
+    Ok(with_content_headers(
         response,
         &served,
         &file_etag(&served),
+        &headers,
         query.download,
     ))
 }
@@ -290,75 +296,6 @@ fn requested_range(headers: &HeaderMap, tag: &HeaderValue, size: u64) -> RangeRe
         headers.get(RANGE).and_then(|value| value.to_str().ok()),
         size,
     )
-}
-
-fn with_common_headers(
-    mut response: Response,
-    record: &FileRecord,
-    tag: &HeaderValue,
-    download: Option<bool>,
-) -> Response {
-    let headers = response.headers_mut();
-    headers.insert(ETAG, tag.clone());
-    headers.insert(ACCEPT_RANGES, HeaderValue::from_static("bytes"));
-    headers.insert(CACHE_CONTROL, HeaderValue::from_static("private, no-cache"));
-    headers.insert(X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff"));
-    headers.insert(
-        CONTENT_SECURITY_POLICY,
-        HeaderValue::from_static("default-src 'none'; sandbox"),
-    );
-    headers.insert(
-        CONTENT_TYPE,
-        HeaderValue::from_str(&record.mime)
-            .unwrap_or_else(|_| HeaderValue::from_static("application/octet-stream")),
-    );
-    if let Some(value) = disposition(record, download.unwrap_or(false)) {
-        headers.insert(CONTENT_DISPOSITION, value);
-    }
-    response
-}
-
-fn is_displayable(mime: &str) -> bool {
-    mime == "application/pdf"
-        || ["image/", "audio/", "text/"]
-            .iter()
-            .any(|prefix| mime.starts_with(prefix))
-}
-
-fn disposition(record: &FileRecord, force_download: bool) -> Option<HeaderValue> {
-    let kind = if !force_download && is_displayable(&record.mime) {
-        "inline"
-    } else {
-        "attachment"
-    };
-    let name = record.path.as_str().rsplit('/').next().unwrap_or_default();
-    let fallback: String = name
-        .chars()
-        .map(|character| {
-            if character.is_ascii_graphic() && !matches!(character, '"' | '\\' | '%') {
-                character
-            } else {
-                '_'
-            }
-        })
-        .collect();
-    HeaderValue::from_str(&format!(
-        "{kind}; filename=\"{fallback}\"; filename*=UTF-8''{}",
-        percent_encode(name)
-    ))
-    .ok()
-}
-
-fn percent_encode(text: &str) -> String {
-    let mut encoded = String::new();
-    for byte in text.bytes() {
-        if byte.is_ascii_alphanumeric() || b"!#$&+-.^_`|~".contains(&byte) {
-            encoded.push(char::from(byte));
-        } else {
-            let _ = write!(encoded, "%{byte:02X}");
-        }
-    }
-    encoded
 }
 
 #[utoipa::path(
@@ -422,17 +359,4 @@ async fn delete_file(
         .delete(&session.actor, &FileRef::Id(id))
         .await?;
     Ok(StatusCode::NO_CONTENT)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn non_ascii_names_get_an_encoded_filename() {
-        assert_eq!(
-            percent_encode("계약서 1.pdf"),
-            "%EA%B3%84%EC%95%BD%EC%84%9C%201.pdf"
-        );
-    }
 }
