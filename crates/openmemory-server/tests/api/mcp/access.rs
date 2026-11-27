@@ -199,7 +199,7 @@ async fn zero_hit_searches_explain_how_the_query_was_read(pool: PgPool) -> TestR
     assert!(
         explanation["query"]
             .as_str()
-            .is_some_and(|query| query.contains("literal substring, case-sensitive"))
+            .is_some_and(|query| query.contains("ignoring case"))
     );
     assert_eq!(
         explanation["fields_in_scope"],

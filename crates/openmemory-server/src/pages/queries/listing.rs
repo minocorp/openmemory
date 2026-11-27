@@ -64,21 +64,3 @@ ORDER BY path"#,
     .fetch_all(conn)
     .await
 }
-
-pub(crate) async fn ids_for_paths(
-    conn: &mut PgConnection,
-    paths: &[String],
-) -> Result<Vec<(String, PageId)>, sqlx::Error> {
-    let rows = sqlx::query!(
-        r#"SELECT
-  path,
-  id AS "id: PageId"
-FROM pages
-WHERE path = ANY($1)
-  AND deleted_at IS NULL"#,
-        paths
-    )
-    .fetch_all(conn)
-    .await?;
-    Ok(rows.into_iter().map(|row| (row.path, row.id)).collect())
-}

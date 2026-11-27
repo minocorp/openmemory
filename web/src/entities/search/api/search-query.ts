@@ -7,9 +7,9 @@ import { toSearchResults } from "../model/results";
 
 const resultLimit = 30;
 
-export const searchQuery = ({ text, conditions }: SearchInput) =>
+export const searchQuery = ({ text, conditions, folder }: SearchInput) =>
   queryOptions({
-    queryKey: ["search", text, conditions],
+    queryKey: ["search", text, conditions, folder],
     queryFn: async () => {
       const view = await unwrap(
         client.GET("/api/search", {
@@ -17,6 +17,7 @@ export const searchQuery = ({ text, conditions }: SearchInput) =>
             query: {
               ...(text === "" ? {} : { q: text }),
               ...(conditions.length === 0 ? {} : { where: conditions }),
+              ...(folder === null ? {} : { folder }),
               limit: resultLimit,
             },
           },

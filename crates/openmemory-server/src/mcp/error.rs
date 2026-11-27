@@ -52,6 +52,9 @@ impl From<SearchError> for ToolError {
             SearchError::Folder(_) => Self::rejected(
                 "Invalid `folder`: use a folder path such as `customers`, without a leading slash.",
             ),
+            SearchError::Cursor => Self::rejected(
+                "Invalid `cursor`: pass the `next_cursor` of a previous result unchanged.",
+            ),
         }
     }
 }

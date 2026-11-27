@@ -8,6 +8,7 @@ import {
   isSearchable,
   parseSearchInput,
   searchQuery,
+  withFolder,
   type SearchResult,
 } from "@/entities/search";
 import { describeError } from "@/shared/api";
@@ -39,7 +40,7 @@ export function PaletteBody({ onClose }: PaletteBodyProps) {
     enabled: canSearch,
     placeholderData: keepPreviousData,
   });
-  const results = canSearch && search.data ? search.data.results : { pages: [], files: [] };
+  const results = canSearch && search.data ? search.data.results : { hits: [], folders: [] };
   const flat = flattenResults(results);
 
   useEffect(() => {
@@ -47,6 +48,11 @@ export function PaletteBody({ onClose }: PaletteBodyProps) {
   }, [activeIndex]);
 
   const openResult = (result: SearchResult) => {
+    if (result.kind === "folder") {
+      setRaw(withFolder(raw, result.path));
+      setActiveIndex(0);
+      return;
+    }
     onClose();
     void navigate({
       to: "/p/$",
@@ -110,12 +116,14 @@ export function PaletteBody({ onClose }: PaletteBodyProps) {
         }
       />
       <CommandList id={listboxId}>
-        {results.pages.length > 0 ? (
-          <CommandGroup heading="Pages">{results.pages.map(itemFor)}</CommandGroup>
+        {results.hits.length > 0 ? (
+          <CommandGroup heading="Matches">{results.hits.map(itemFor)}</CommandGroup>
         ) : null}
-        {results.files.length > 0 ? (
-          <CommandGroup heading="Files">{results.files.map(itemFor)}</CommandGroup>
-        ) : null}
+        {results.folders.map((folder) => (
+          <CommandGroup key={folder.path} heading={`${folder.path}/`}>
+            {folder.results.map(itemFor)}
+          </CommandGroup>
+        ))}
         <PaletteStatus
           isSearchable={canSearch}
           isError={search.isError}

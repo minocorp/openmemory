@@ -114,6 +114,23 @@ test.describe.serial("command palette", () => {
     await page.keyboard.press("Escape");
   });
 
+  test("groups matches by folder and searches inside one", async () => {
+    await createPage(page, "search-e2e/groups/one/Alpha", "Lantern note one.\n");
+    await createPage(page, "search-e2e/groups/two/Beta", "Lantern note two.\n");
+    await page.keyboard.press("ControlOrMeta+k");
+    await input().fill("lantern");
+    const one = palette().getByRole("group", { name: "search-e2e/groups/one/" });
+    await expect(one.getByRole("option", { name: /Alpha/ })).toBeVisible();
+    await expect(palette().getByRole("group", { name: "search-e2e/groups/two/" })).toBeVisible();
+    await shoot(page, "40-search-folders");
+    await one.getByRole("option", { name: "Search in search-e2e/groups/one 1" }).click();
+    await expect(input()).toHaveValue("lantern in:search-e2e/groups/one");
+    const matches = palette().getByRole("group", { name: "Matches" });
+    await expect(matches.getByRole("option", { name: /Alpha/ })).toBeVisible();
+    await expect(palette().getByRole("option", { name: /Beta/ })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+  });
+
   test("explains how an empty search was read", async () => {
     await page.keyboard.press("ControlOrMeta+k");
     await input().fill("nothing-matches-this-qqq");

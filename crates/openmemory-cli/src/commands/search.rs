@@ -27,6 +27,9 @@ pub(super) async fn run(args: &SearchArgs, context: &Context) -> anyhow::Result<
     if let Some(no_hits) = &results.no_hits {
         note(&format!("No matches for `{}`", no_hits.query));
     }
+    if !results.folders.is_empty() {
+        note("See every match in a folder with `--folder <path>`");
+    }
     if results.next.is_some() {
         note(
             "More results exist: page through them with `openmemory api search --paginate -f q=...`",

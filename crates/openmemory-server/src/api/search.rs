@@ -1,37 +1,24 @@
-use std::collections::HashMap;
-
 use axum::extract::{RawQuery, State};
 use axum::routing::get;
 use axum::{Json, Router};
-use openmemory_api::{FileHit, NoHits as ApiNoHits, PageHit, Problem, SearchResults};
-use openmemory_ops::{HitKind, NoHits, SearchHit, SearchInput};
+use openmemory_api::{FolderHits, HitKind, NoHits as ApiNoHits, Problem, SearchHit, SearchResults};
+use openmemory_ops::{NoHits, SearchInput};
 use utoipa::OpenApi;
 
 use crate::api::error::ApiError;
 use crate::auth::ApiSession;
-use crate::files::FileId;
-use crate::pages::ids::PageId;
-use crate::pages::listing;
-use crate::search::{self, Match};
+use crate::search::{self, Document, Found, FoundFolder, FoundHit};
 use crate::state::AppState;
 
 #[derive(OpenApi)]
 #[openapi(
     paths(search),
-    components(schemas(SearchResults, PageHit, FileHit, ApiNoHits))
+    components(schemas(SearchResults, SearchHit, HitKind, FolderHits, ApiNoHits))
 )]
 pub(super) struct Doc;
 
 pub(super) fn router() -> Router<AppState> {
     Router::new().route("/api/search", get(search))
-}
-
-fn no_hits_view(no_hits: NoHits) -> ApiNoHits {
-    ApiNoHits {
-        query: no_hits.query,
-        fields_in_scope: no_hits.fields_in_scope,
-        folders_out_of_scope: no_hits.folders_out_of_scope,
-    }
 }
 
 fn parse_params(raw: &str) -> Result<SearchInput, ApiError> {
@@ -44,13 +31,7 @@ fn parse_params(raw: &str) -> Result<SearchInput, ApiError> {
             "limit" => {
                 input.limit = Some(value.parse().map_err(|_| ApiError::InvalidInput("limit"))?);
             }
-            "cursor" => {
-                input.cursor = Some(
-                    value
-                        .parse()
-                        .map_err(|_| ApiError::InvalidInput("cursor"))?,
-                );
-            }
+            "cursor" => input.cursor = Some(value.into_owned()),
             _ => {}
         }
     }
@@ -63,7 +44,7 @@ fn parse_params(raw: &str) -> Result<SearchInput, ApiError> {
     tag = "search",
     security(("session" = []), ("bearer" = [])),
     params(
-        ("q" = Option<String>, Query, description = "Literal text"),
+        ("q" = Option<String>, Query, description = "Words; each must occur in the path or text, ignoring case"),
         ("where" = Option<Vec<String>>, Query, style = Form, explode = true, description = "Field conditions, ANDed; repeat the parameter"),
         ("folder" = Option<String>, Query),
         ("limit" = Option<u32>, Query),
@@ -81,68 +62,56 @@ async fn search(
     RawQuery(raw): RawQuery,
 ) -> Result<Json<SearchResults>, ApiError> {
     let input = parse_params(raw.as_deref().unwrap_or_default())?;
-    let output = search::search(
-        state.pool(),
-        state.time_zone(),
-        &session.actor,
-        &input,
-        Match::TextAndPaths,
-    )
-    .await?;
-    let (file_hits, page_hits): (Vec<_>, Vec<_>) = output
-        .hits
-        .into_iter()
-        .partition(|hit| hit.kind == HitKind::File);
-    let page_ids: HashMap<String, PageId> =
-        listing::ids_for_paths(state.pool(), &paths_of(&page_hits))
-            .await?
-            .into_iter()
-            .collect();
-    let file_ids: HashMap<String, FileId> = state
-        .files()
-        .ids_for_paths(&paths_of(&file_hits))
-        .await?
-        .into_iter()
-        .collect();
-    Ok(Json(SearchResults {
-        pages: page_hits
-            .into_iter()
-            .filter_map(|hit| page_hit(&page_ids, hit))
-            .collect(),
-        files: file_hits
-            .into_iter()
-            .filter_map(|hit| file_hit(&file_ids, hit))
-            .collect(),
-        next: output.next_cursor.map(|cursor| cursor.to_string()),
-        no_hits: output.no_hits.map(no_hits_view),
-    }))
+    let found = search::search(state.pool(), state.time_zone(), &session.actor, &input).await?;
+    Ok(Json(found.into()))
 }
 
-fn paths_of(hits: &[SearchHit]) -> Vec<String> {
-    hits.iter().map(|hit| hit.path.clone()).collect()
+impl From<Found> for SearchResults {
+    fn from(found: Found) -> Self {
+        Self {
+            hits: found.hits.into_iter().map(Into::into).collect(),
+            folders: found.folders.into_iter().map(Into::into).collect(),
+            next: found.next_cursor,
+            no_hits: found.no_hits.map(no_hits_view),
+        }
+    }
 }
 
-fn page_hit(ids: &HashMap<String, PageId>, hit: SearchHit) -> Option<PageHit> {
-    Some(PageHit {
-        page_id: ids.get(&hit.path)?.0,
-        path: hit.path,
-        line_number: hit.line_number,
-        line: hit.line,
-        author: hit.author,
-        at: hit.at,
-    })
+impl From<FoundFolder> for FolderHits {
+    fn from(folder: FoundFolder) -> Self {
+        Self {
+            path: folder.path,
+            matches: folder.matches,
+            hits: folder.hits.into_iter().map(Into::into).collect(),
+        }
+    }
 }
 
-fn file_hit(ids: &HashMap<String, FileId>, hit: SearchHit) -> Option<FileHit> {
-    Some(FileHit {
-        file_id: ids.get(&hit.path)?.0,
-        path: hit.path,
-        page: hit.page,
-        line_number: hit.line_number,
-        line: hit.line,
-        author: hit.author,
-        at: hit.at,
-    })
+impl From<FoundHit> for SearchHit {
+    fn from(found: FoundHit) -> Self {
+        let (kind, id) = match found.document {
+            Document::Page(id) => (HitKind::Page, id.0),
+            Document::File(id) => (HitKind::File, id.0),
+        };
+        Self {
+            kind,
+            id,
+            path: found.hit.path,
+            page: found.hit.page,
+            line_number: found.hit.line_number,
+            line: found.hit.line,
+            author: found.hit.author,
+            at: found.hit.at,
+        }
+    }
+}
+
+fn no_hits_view(no_hits: NoHits) -> ApiNoHits {
+    ApiNoHits {
+        query: no_hits.query,
+        fields_in_scope: no_hits.fields_in_scope,
+        folders_out_of_scope: no_hits.folders_out_of_scope,
+    }
 }
 
 #[cfg(test)]
@@ -162,14 +131,10 @@ mod tests {
     }
 
     #[test]
-    fn numeric_parameters_must_parse() {
+    fn the_limit_must_be_a_number() {
         assert!(matches!(
             parse_params("limit=many"),
             Err(ApiError::InvalidInput("limit"))
-        ));
-        assert!(matches!(
-            parse_params("cursor=x"),
-            Err(ApiError::InvalidInput("cursor"))
         ));
     }
 

@@ -215,6 +215,7 @@ fn describe_search(error: &SearchError) -> Problem {
     match error {
         SearchError::Where(_) => plain(StatusCode::BAD_REQUEST, "invalid_where"),
         SearchError::Folder(_) => invalid_input("folder"),
+        SearchError::Cursor => invalid_input("cursor"),
         SearchError::Database(_) => internal(),
     }
 }
