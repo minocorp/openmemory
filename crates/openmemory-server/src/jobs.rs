@@ -12,6 +12,7 @@ use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 
 use crate::backup::Backup;
+use crate::journal::Journal;
 use crate::oauth;
 use crate::rate_limit::RateLimits;
 
@@ -32,9 +33,11 @@ impl Jobs {
         store: Arc<dyn ObjectStore>,
         rate_limits: RateLimits,
         backup: Backup,
+        journal: Journal,
     ) -> Self {
         let tracker = TaskTracker::new();
         let cancel = CancellationToken::new();
+        tracker.spawn(journal.listen(cancel.clone()));
         tracker.spawn(run_blob_gc(pool.clone(), store, cancel.clone()));
         tracker.spawn(backup_monitor::run(pool.clone(), backup, cancel.clone()));
         tracker.spawn(run_pending_expiry(pool, cancel.clone()));
@@ -107,10 +110,11 @@ mod tests {
     #[sqlx::test]
     async fn shutdown_stops_the_background_tasks(pool: PgPool) {
         let jobs = Jobs::start(
-            pool,
+            pool.clone(),
             Arc::new(InMemory::new()),
             RateLimits::new(),
             Backup::default(),
+            Journal::new(pool),
         );
         tokio::time::timeout(Duration::from_secs(5), jobs.shutdown())
             .await

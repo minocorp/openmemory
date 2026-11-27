@@ -7,7 +7,10 @@ mod problem;
 mod search;
 mod tree;
 
-pub use changes::{ChangeGroup, ChangedVersion, Changes, GroupReverted, SeenRequest, SeenState};
+pub use changes::{
+    ChangeEvent, ChangeGroup, ChangedVersion, Changes, FileOperation, GroupReverted, PurgedKind,
+    SeenRequest, SeenState, StreamReady,
+};
 pub use files::{FileText, FileView};
 pub use folder::{EntryKind, FolderEntry, FolderListing};
 pub use headers::{AUTHORIZATION, ETAG, IF_MATCH, IF_NONE_MATCH, PROBLEM_CONTENT_TYPE};

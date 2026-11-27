@@ -8,6 +8,7 @@ use crate::auth::{Bootstrap, Passkeys};
 use crate::backup::Backup;
 use crate::config::PublicUrl;
 use crate::files::Files;
+use crate::journal::Journal;
 use crate::oauth::ClientFetcher;
 use crate::rate_limit::{RateLimits, TrustedProxy};
 use crate::time_zone::TimeZone;
@@ -16,6 +17,7 @@ use crate::time_zone::TimeZone;
 pub struct AppState {
     pool: PgPool,
     files: Files,
+    journal: Journal,
     public_url: PublicUrl,
     passkeys: Passkeys,
     bootstrap: Bootstrap,
@@ -28,11 +30,13 @@ pub struct AppState {
 impl AppState {
     pub fn new(pool: PgPool, store: Arc<dyn ObjectStore>, max_upload_bytes: u64) -> Self {
         let files = Files::new(pool.clone(), store, max_upload_bytes);
+        let journal = Journal::new(pool.clone());
         let public_url = PublicUrl::local();
         let passkeys = Passkeys::new(&public_url);
         Self {
             pool,
             files,
+            journal,
             public_url,
             passkeys: passkeys
                 .unwrap_or_else(|_| unreachable!("localhost is a valid relying party")),
@@ -75,6 +79,10 @@ impl AppState {
 
     pub(crate) fn files(&self) -> &Files {
         &self.files
+    }
+
+    pub(crate) fn journal(&self) -> &Journal {
+        &self.journal
     }
 
     pub(crate) fn public_url(&self) -> &PublicUrl {

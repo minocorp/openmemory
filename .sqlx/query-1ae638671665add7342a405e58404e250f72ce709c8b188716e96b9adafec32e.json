@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  g.id AS \"group_id: GroupId\",\n  g.task,\n  v.page_id AS \"page_id: PageId\",\n  v.n AS \"n: VersionNumber\",\n  v.seq AS \"seq: Seq\",\n  v.path,\n  v.op,\n  v.author_name,\n  u.display_name AS author_display_name,\n  v.created_at,\n  v.content,\n  previous.content AS \"previous_content?\"\nFROM page_versions AS v\nJOIN change_groups AS g ON g.id = v.group_id\nJOIN users AS u ON u.id = v.user_id\nLEFT JOIN page_versions AS previous ON previous.page_id = v.page_id AND previous.n = v.n - 1\nWHERE v.seq > $1\n  AND ($2 OR v.path = ANY($3) OR v.path LIKE ANY($4))\n  AND (v.user_id <> $6 OR v.connection_id IS NOT NULL)\nORDER BY v.seq\nLIMIT $5",
+  "query": "SELECT\n  g.id AS \"group_id: GroupId\",\n  g.task,\n  v.page_id AS \"page_id: PageId\",\n  v.n AS \"n: VersionNumber\",\n  j.seq AS \"seq!: Seq\",\n  v.path,\n  v.op,\n  v.author_name,\n  u.display_name AS author_display_name,\n  v.created_at,\n  v.content,\n  previous.content AS \"previous_content?\"\nFROM journal AS j\nJOIN page_versions AS v ON v.page_id = j.page_id AND v.n = j.n\nJOIN change_groups AS g ON g.id = v.group_id\nJOIN users AS u ON u.id = v.user_id\nLEFT JOIN page_versions AS previous ON previous.page_id = v.page_id AND previous.n = v.n - 1\nWHERE j.seq > $1\n  AND ($2 OR v.path = ANY($3) OR v.path LIKE ANY($4))\n  AND (v.user_id <> $6 OR v.connection_id IS NOT NULL)\nORDER BY j.seq\nLIMIT $5",
   "describe": {
     "columns": [
       {
@@ -49,11 +49,11 @@
       },
       {
         "ordinal": 4,
-        "name": "seq: Seq",
+        "name": "seq!: Seq",
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "page_versions",
+            "table": "journal",
             "name": "seq"
           }
         }
@@ -161,5 +161,5 @@
       false
     ]
   },
-  "hash": "9c7db8daaaed3dc17913fbe4387d1a731e055420ffaea5deb61ca094039454e2"
+  "hash": "1ae638671665add7342a405e58404e250f72ce709c8b188716e96b9adafec32e"
 }

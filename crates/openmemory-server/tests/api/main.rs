@@ -13,4 +13,5 @@ mod oauth;
 mod openapi;
 mod pages;
 mod purge;
+mod sse;
 mod support;

@@ -45,3 +45,44 @@ pub struct SeenRequest {
 pub struct GroupReverted {
     pub reverted: Vec<Written>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+pub struct StreamReady {
+    pub resumed: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ChangeEvent {
+    Page {
+        id: i64,
+        version: i32,
+        op: Operation,
+        path: Option<String>,
+        previous_path: Option<String>,
+    },
+    File {
+        id: i64,
+        op: FileOperation,
+        path: String,
+    },
+    Purge {
+        subject: PurgedKind,
+        id: i64,
+        path: String,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum FileOperation {
+    Upload,
+    Delete,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PurgedKind {
+    Page,
+    File,
+}

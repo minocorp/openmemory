@@ -7,6 +7,7 @@ mod db;
 mod files;
 mod health;
 mod jobs;
+mod journal;
 mod mcp;
 mod oauth;
 mod pages;
@@ -54,13 +55,15 @@ pub fn router(state: AppState) -> Router {
         .merge(access::connections::router())
         .merge(api::router())
         .fallback(web::serve)
-        .layer(middleware::from_fn_with_state(
-            state.rate_limits().clone(),
-            rate_limit::enforce,
-        ))
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,
             REQUEST_TIMEOUT,
+        ))
+        // Streams stay open, so they are merged after the request timeout.
+        .merge(api::streams())
+        .layer(middleware::from_fn_with_state(
+            state.rate_limits().clone(),
+            rate_limit::enforce,
         ))
         .layer(TraceLayer::new_for_http())
         .layer(middleware::from_fn_with_state(
@@ -105,12 +108,17 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
         store,
         state.rate_limits().clone(),
         state.backup().clone(),
+        state.journal().clone(),
     );
+    let journal = state.journal().clone();
     let served = axum::serve(
         listener,
         router(state).into_make_service_with_connect_info::<SocketAddr>(),
     )
-    .with_graceful_shutdown(shutdown_signal())
+    .with_graceful_shutdown(async move {
+        shutdown_signal().await;
+        journal.close();
+    })
     .await
     .context("serve");
     jobs.shutdown().await;
