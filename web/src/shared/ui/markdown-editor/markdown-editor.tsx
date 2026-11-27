@@ -19,6 +19,7 @@ import { deleteTable, editTable } from "./preview/table-focus";
 import { SelectionToolbar, type ToolbarPosition } from "./selection-toolbar";
 import { slashSource, wikiSource } from "./slash-menu";
 import { TableToolbar } from "./table-toolbar";
+import { textChanges } from "./text-changes";
 
 type MarkdownEditorProps = {
   value: string;
@@ -111,7 +112,7 @@ export function MarkdownEditor({
   useEffect(() => {
     const view = viewRef.current;
     if (view && view.state.doc.toString() !== value) {
-      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value } });
+      view.dispatch({ changes: textChanges(view.state.doc.toString(), value) });
     }
   }, [value]);
 
