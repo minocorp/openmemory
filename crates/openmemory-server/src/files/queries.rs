@@ -92,24 +92,6 @@ WHERE f.id = $1
     .await
 }
 
-pub(super) async fn ids_for_paths(
-    conn: &mut PgConnection,
-    paths: &[String],
-) -> Result<Vec<(String, FileId)>, sqlx::Error> {
-    let rows = sqlx::query!(
-        r#"SELECT
-  path,
-  id AS "id: FileId"
-FROM files
-WHERE path = ANY($1)
-  AND deleted_at IS NULL"#,
-        paths
-    )
-    .fetch_all(conn)
-    .await?;
-    Ok(rows.into_iter().map(|row| (row.path, row.id)).collect())
-}
-
 pub(super) async fn path_is_taken(
     conn: &mut PgConnection,
     path: &PagePath,

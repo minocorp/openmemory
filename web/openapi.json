@@ -3251,7 +3251,7 @@
           {
             "name": "q",
             "in": "query",
-            "description": "Literal text",
+            "description": "Words; each must occur in the path or text, ignoring case",
             "required": false,
             "schema": {
               "type": "string"
@@ -4576,52 +4576,6 @@
           }
         }
       },
-      "FileHit": {
-        "type": "object",
-        "required": [
-          "file_id",
-          "path",
-          "author",
-          "at"
-        ],
-        "properties": {
-          "at": {
-            "type": "string"
-          },
-          "author": {
-            "type": "string"
-          },
-          "file_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "line": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "line_number": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "int32",
-            "minimum": 0
-          },
-          "page": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "int32",
-            "minimum": 0
-          },
-          "path": {
-            "type": "string"
-          }
-        }
-      },
       "FileSourceView": {
         "type": "object",
         "required": [
@@ -4724,6 +4678,30 @@
           }
         }
       },
+      "FolderHits": {
+        "type": "object",
+        "required": [
+          "path",
+          "matches",
+          "hits"
+        ],
+        "properties": {
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            }
+          },
+          "matches": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
       "FolderListing": {
         "type": "object",
         "required": [
@@ -4761,6 +4739,13 @@
             }
           }
         }
+      },
+      "HitKind": {
+        "type": "string",
+        "enum": [
+          "page",
+          "file"
+        ]
       },
       "ImportReport": {
         "type": "object",
@@ -5036,44 +5021,6 @@
               "string",
               "null"
             ]
-          }
-        }
-      },
-      "PageHit": {
-        "type": "object",
-        "required": [
-          "page_id",
-          "path",
-          "author",
-          "at"
-        ],
-        "properties": {
-          "at": {
-            "type": "string"
-          },
-          "author": {
-            "type": "string"
-          },
-          "line": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "line_number": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "int32",
-            "minimum": 0
-          },
-          "page_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "path": {
-            "type": "string"
           }
         }
       },
@@ -5387,17 +5334,73 @@
           }
         }
       },
+      "SearchHit": {
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "path",
+          "author",
+          "at"
+        ],
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/HitKind"
+          },
+          "line": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "line_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "page": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
       "SearchResults": {
         "type": "object",
         "required": [
-          "pages",
-          "files"
+          "hits",
+          "folders"
         ],
         "properties": {
-          "files": {
+          "folders": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/FileHit"
+              "$ref": "#/components/schemas/FolderHits"
+            }
+          },
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
             }
           },
           "next": {
@@ -5415,12 +5418,6 @@
                 "type": "null"
               }
             ]
-          },
-          "pages": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PageHit"
-            }
           }
         }
       },

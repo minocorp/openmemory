@@ -17,5 +17,5 @@ pub use pages::{
     Written,
 };
 pub use problem::{Problem, TYPE_PREFIX};
-pub use search::{FileHit, NoHits, PageHit, SearchResults};
+pub use search::{FolderHits, HitKind, NoHits, SearchHit, SearchResults};
 pub use tree::{TreeFile, TreeFolder, TreePage, TreeView};

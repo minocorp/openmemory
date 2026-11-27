@@ -1,5 +1,5 @@
 use openmemory_ops::{
-    HitKind, Replacement, SearchInput, SearchOutput, WriteAction, format_iso_date,
+    HitKind, Replacement, SearchHit, SearchInput, SearchOutput, WriteAction, format_iso_date,
 };
 use sqlx::PgPool;
 use time::{Duration, OffsetDateTime};
@@ -7,9 +7,11 @@ use time::{Duration, OffsetDateTime};
 use crate::access::Actor;
 use crate::pages::delete::delete;
 use crate::pages::write::write;
-use crate::search::{Match, SearchError, search};
+use crate::search::{SearchError, search};
 use crate::test_support::{agent, create, path, scoped};
 use crate::time_zone::TimeZone;
+
+mod folders;
 
 fn days_from_today(days: i64) -> String {
     format_iso_date(OffsetDateTime::now_utc().date() + Duration::days(days))
@@ -34,9 +36,10 @@ async fn seed(pool: &PgPool) -> Actor {
 }
 
 async fn find(pool: &PgPool, actor: &Actor, input: SearchInput) -> SearchOutput {
-    search(pool, &TimeZone::utc(), actor, &input, Match::Text)
+    search(pool, &TimeZone::utc(), actor, &input)
         .await
         .unwrap()
+        .into()
 }
 
 fn text(value: &str) -> SearchInput {
@@ -53,8 +56,19 @@ fn filter(conditions: &[&str]) -> SearchInput {
     }
 }
 
+fn all_hits(output: &SearchOutput) -> Vec<&SearchHit> {
+    output
+        .hits
+        .iter()
+        .chain(output.folders.iter().flat_map(|folder| folder.hits.iter()))
+        .collect()
+}
+
 fn paths(output: &SearchOutput) -> Vec<&str> {
-    let mut paths: Vec<&str> = output.hits.iter().map(|hit| hit.path.as_str()).collect();
+    let mut paths: Vec<&str> = all_hits(output)
+        .into_iter()
+        .map(|hit| hit.path.as_str())
+        .collect();
     paths.sort_unstable();
     paths.dedup();
     paths
@@ -64,10 +78,12 @@ fn paths(output: &SearchOutput) -> Vec<&str> {
 async fn text_search_returns_matching_lines_with_author_and_time(pool: PgPool) {
     let actor = seed(&pool).await;
     let output = find(&pool, &actor, text("Partner")).await;
-    assert_eq!(paths(&output), ["clients/acme", "clients2/other"]);
-    let hit = output
-        .hits
-        .iter()
+    assert_eq!(
+        paths(&output),
+        ["clients/acme", "clients/beta", "clients2/other"]
+    );
+    let hit = all_hits(&output)
+        .into_iter()
         .find(|hit| hit.path == "clients/acme")
         .unwrap();
     assert_eq!(hit.line_number, Some(7));
@@ -78,7 +94,7 @@ async fn text_search_returns_matching_lines_with_author_and_time(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn search_is_literal_and_case_sensitive(pool: PgPool) {
+async fn wildcards_in_words_are_literal(pool: PgPool) {
     let actor = seed(&pool).await;
     assert_eq!(
         paths(&find(&pool, &actor, text("100%")).await),
@@ -88,17 +104,47 @@ async fn search_is_literal_and_case_sensitive(pool: PgPool) {
         paths(&find(&pool, &actor, text("file_id")).await),
         ["tax/2026"]
     );
-    assert_eq!(find(&pool, &actor, text("1_0")).await.hits.len(), 0);
-    assert!(
-        find(&pool, &actor, text("%"))
-            .await
-            .hits
-            .iter()
-            .all(|hit| hit.path == "tax/2026")
+    assert_eq!(
+        paths(&find(&pool, &actor, text("1_0")).await),
+        Vec::<&str>::new()
     );
-    assert_eq!(find(&pool, &actor, text("PARTNER")).await.hits.len(), 0);
-    assert_eq!(find(&pool, &actor, text("\\")).await.hits.len(), 0);
-    assert_eq!(find(&pool, &actor, text("100%d")).await.hits.len(), 0);
+    assert_eq!(paths(&find(&pool, &actor, text("%")).await), ["tax/2026"]);
+    assert_eq!(
+        paths(&find(&pool, &actor, text("\\")).await),
+        Vec::<&str>::new()
+    );
+    assert_eq!(
+        paths(&find(&pool, &actor, text("100%d")).await),
+        Vec::<&str>::new()
+    );
+}
+
+#[sqlx::test]
+async fn every_word_must_occur_in_the_path_or_text_ignoring_case(pool: PgPool) {
+    let actor = seed(&pool).await;
+    assert_eq!(
+        paths(&find(&pool, &actor, text("PARTNER design")).await),
+        ["clients/acme"]
+    );
+    assert_eq!(
+        paths(&find(&pool, &actor, text("seoul 계약")).await),
+        ["notes/seoul"]
+    );
+    assert_eq!(
+        paths(&find(&pool, &actor, text("design 계약")).await),
+        Vec::<&str>::new()
+    );
+}
+
+#[sqlx::test]
+async fn decomposed_hangul_matches_composed_words(pool: PgPool) {
+    let actor = agent(&pool, "mino", "claude-code").await;
+    let decomposed: String =
+        unicode_normalization::UnicodeNormalization::nfd("월 계약서 사본").collect();
+    create(&pool, &actor, "scans/lease", &format!("{decomposed}\n")).await;
+    let output = find(&pool, &actor, text("계약서")).await;
+    assert_eq!(paths(&output), ["scans/lease"]);
+    assert_eq!(output.hits[0].line.as_deref(), Some(decomposed.as_str()));
 }
 
 #[sqlx::test]
@@ -171,7 +217,7 @@ async fn filter_hits_show_the_page_fields(pool: PgPool) {
 async fn text_and_filters_and_folders_combine(pool: PgPool) {
     let actor = seed(&pool).await;
     let both = SearchInput {
-        text: Some("Partner".to_owned()),
+        text: Some("Design".to_owned()),
         conditions: vec!["status=churned".to_owned()],
         folder: Some("clients".to_owned()),
         ..SearchInput::default()
@@ -219,7 +265,7 @@ async fn results_stay_inside_the_scope_and_zero_hits_explain_the_hidden_folders(
     let explanation = output.no_hits.unwrap();
     assert_eq!(explanation.folders_out_of_scope, 3);
     assert_eq!(explanation.fields_in_scope.len(), 0);
-    assert!(explanation.query.contains("\"Partner\""));
+    assert!(explanation.query.contains("\"partner\""));
     let visible = find(&pool, &tax_only, text("refund")).await;
     assert_eq!(paths(&visible), ["tax/2026"]);
 }
@@ -324,14 +370,7 @@ async fn filters_without_text_return_page_level_hits(pool: PgPool) {
 #[sqlx::test]
 async fn invalid_conditions_and_folders_are_rejected(pool: PgPool) {
     let actor = seed(&pool).await;
-    let bad_where = search(
-        &pool,
-        &TimeZone::utc(),
-        &actor,
-        &filter(&["status"]),
-        Match::Text,
-    )
-    .await;
+    let bad_where = search(&pool, &TimeZone::utc(), &actor, &filter(&["status"])).await;
     let bad_folder = search(
         &pool,
         &TimeZone::utc(),
@@ -340,11 +379,21 @@ async fn invalid_conditions_and_folders_are_rejected(pool: PgPool) {
             folder: Some("a//b".to_owned()),
             ..SearchInput::default()
         },
-        Match::Text,
+    )
+    .await;
+    let bad_cursor = search(
+        &pool,
+        &TimeZone::utc(),
+        &actor,
+        &SearchInput {
+            cursor: Some("12".to_owned()),
+            ..text("Partner")
+        },
     )
     .await;
     assert!(matches!(bad_where, Err(SearchError::Where(_))));
     assert!(matches!(bad_folder, Err(SearchError::Folder(_))));
+    assert!(matches!(bad_cursor, Err(SearchError::Cursor)));
 }
 
 #[sqlx::test]
@@ -361,12 +410,8 @@ async fn today_in_where_follows_the_configured_zone(pool: PgPool) {
     );
     create(&pool, &actor, "renews", &page).await;
     let input = filter(&["renewal=today"]);
-    let in_ahead = search(&pool, &ahead, &actor, &input, Match::Text)
-        .await
-        .unwrap();
-    let in_behind = search(&pool, &behind, &actor, &input, Match::Text)
-        .await
-        .unwrap();
+    let in_ahead: SearchOutput = search(&pool, &ahead, &actor, &input).await.unwrap().into();
+    let in_behind: SearchOutput = search(&pool, &behind, &actor, &input).await.unwrap().into();
     assert_eq!(paths(&in_ahead), ["renews"]);
     assert_eq!(paths(&in_behind), Vec::<&str>::new());
 }
@@ -406,9 +451,8 @@ async fn text_search_covers_file_pages_and_names_the_pdf_page(pool: PgPool) {
     )
     .await;
     let output = find(&pool, &actor, text("오십만원")).await;
-    let file_hits: Vec<_> = output
-        .hits
-        .iter()
+    let file_hits: Vec<_> = all_hits(&output)
+        .into_iter()
         .filter(|hit| hit.kind == HitKind::File)
         .collect();
     assert_eq!(file_hits.len(), 1);
@@ -418,9 +462,8 @@ async fn text_search_covers_file_pages_and_names_the_pdf_page(pool: PgPool) {
     assert_eq!(file_hits[0].line.as_deref(), Some("월 금 오십만원정"));
     assert_eq!(file_hits[0].author, "mino");
     assert!(
-        output
-            .hits
-            .iter()
+        all_hits(&output)
+            .into_iter()
             .any(|hit| hit.kind == HitKind::Page && hit.path == "clients/acme")
     );
 }
@@ -436,10 +479,8 @@ async fn file_hits_respect_scope_folder_and_field_conditions(pool: PgPool) {
         ..text("Partner")
     };
     assert!(
-        find(&pool, &actor, in_folder)
-            .await
-            .hits
-            .iter()
+        all_hits(&find(&pool, &actor, in_folder).await)
+            .into_iter()
             .all(|hit| hit.kind == HitKind::Page)
     );
     let with_condition = SearchInput {
@@ -447,40 +488,31 @@ async fn file_hits_respect_scope_folder_and_field_conditions(pool: PgPool) {
         ..text("Partner")
     };
     assert!(
-        find(&pool, &actor, with_condition)
-            .await
-            .hits
-            .iter()
+        all_hits(&find(&pool, &actor, with_condition).await)
+            .into_iter()
             .all(|hit| hit.kind == HitKind::Page)
     );
 }
 
 #[sqlx::test]
-async fn paths_match_only_when_asked_and_ignore_case(pool: PgPool) {
+async fn paths_match_like_text_and_ignore_case(pool: PgPool) {
     let actor = seed(&pool).await;
     add_file(&pool, &actor, "contracts/Seoul-lease.pdf", &["unrelated"]).await;
-    let by_text = find(&pool, &actor, text("seoul")).await;
-    assert_eq!(by_text.hits, []);
-    let output = search(
-        &pool,
-        &TimeZone::utc(),
-        &actor,
-        &text("seoul"),
-        Match::TextAndPaths,
-    )
-    .await
-    .unwrap();
-    let found: Vec<(HitKind, &str)> = output
-        .hits
-        .iter()
+    let output = find(&pool, &actor, text("seoul")).await;
+    let found: Vec<(HitKind, &str)> = all_hits(&output)
+        .into_iter()
         .map(|hit| (hit.kind, hit.path.as_str()))
         .collect();
     assert_eq!(
         found,
         [
-            (HitKind::Page, "notes/seoul"),
-            (HitKind::File, "contracts/Seoul-lease.pdf")
+            (HitKind::File, "contracts/Seoul-lease.pdf"),
+            (HitKind::Page, "notes/seoul")
         ]
     );
-    assert_eq!(output.hits[0].line, None);
+    assert!(
+        all_hits(&output)
+            .iter()
+            .all(|hit| hit.line_number.is_none())
+    );
 }

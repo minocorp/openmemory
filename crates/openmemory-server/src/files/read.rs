@@ -5,7 +5,7 @@ use object_store::{GetOptions, ObjectStore};
 
 use crate::access::Actor;
 use crate::files::queries;
-use crate::files::{FileDownload, FileId, FileRecord, FileRef, Files, FilesError};
+use crate::files::{FileDownload, FileRecord, FileRef, Files, FilesError};
 use crate::pages::scope_filter::ScopeFilter;
 use crate::purge::{self, Subject};
 use crate::storage::BlobKey;
@@ -34,14 +34,6 @@ impl Files {
             return Err(FilesError::NotFound);
         }
         Ok(record)
-    }
-
-    pub(crate) async fn ids_for_paths(
-        &self,
-        paths: &[String],
-    ) -> Result<Vec<(String, FileId)>, FilesError> {
-        let mut conn = self.pool.acquire().await?;
-        Ok(queries::ids_for_paths(&mut conn, paths).await?)
     }
 
     pub(crate) async fn list(&self, actor: &Actor) -> Result<Vec<FileRecord>, FilesError> {

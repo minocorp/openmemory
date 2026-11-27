@@ -1,21 +1,10 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  path,\n  id AS \"id: PageId\"\nFROM pages\nWHERE path = ANY($1)\n  AND deleted_at IS NULL",
+  "query": "SELECT\n  p.id AS \"id: PageId\",\n  p.content\nFROM pages AS p\nWHERE p.id = ANY($1)",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "path",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "pages",
-            "name": "path"
-          }
-        }
-      },
-      {
-        "ordinal": 1,
         "name": "id: PageId",
         "type_info": "Int8",
         "origin": {
@@ -24,11 +13,22 @@
             "name": "id"
           }
         }
+      },
+      {
+        "ordinal": 1,
+        "name": "content",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "content"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "TextArray"
+        "Int8Array"
       ]
     },
     "nullable": [
@@ -36,5 +36,5 @@
       false
     ]
   },
-  "hash": "04cb596beb42bdf43f085f2b02fd07fbfa0b4d68ee9508606a9a252ef2e3e896"
+  "hash": "378728ea7fba790040cc3fbdba41bc77ac52b32242d6bcc0edd5d18e7cbdce57"
 }

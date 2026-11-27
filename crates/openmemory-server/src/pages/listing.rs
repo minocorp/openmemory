@@ -49,11 +49,3 @@ pub(crate) async fn sources(pool: &PgPool, actor: &Actor) -> Result<Vec<PageSour
         })
         .collect())
 }
-
-pub(crate) async fn ids_for_paths(
-    pool: &PgPool,
-    paths: &[String],
-) -> Result<Vec<(String, PageId)>, PagesError> {
-    let mut conn = pool.acquire().await?;
-    Ok(listing::ids_for_paths(&mut conn, paths).await?)
-}

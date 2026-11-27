@@ -158,11 +158,11 @@ async fn folder(Query(query): Query<HashMap<String, String>>) -> axum::Json<Valu
 
 async fn search() -> axum::Json<Value> {
     axum::Json(json!({
-        "pages": [{
-            "page_id": 7, "path": PAGE_PATH, "line_number": 1, "line": "# Acme",
-            "author": "mino", "at": "2026-11-24T00:00:00Z",
+        "hits": [{
+            "kind": "page", "id": 7, "path": PAGE_PATH, "page": null, "line_number": 1,
+            "line": "# Acme", "author": "mino", "at": "2026-11-24T00:00:00Z",
         }],
-        "files": [], "next": null, "no_hits": null,
+        "folders": [], "next": null, "no_hits": null,
     }))
 }
 

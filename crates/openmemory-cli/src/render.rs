@@ -1,7 +1,8 @@
 use std::fmt::Write;
 
 use openmemory_api::{
-    Changes, EntryKind, FolderEntry, Operation, SearchResults, VersionList, VersionView,
+    Changes, EntryKind, FolderEntry, HitKind, Operation, SearchHit, SearchResults, VersionList,
+    VersionView,
 };
 
 use crate::output::Output;
@@ -21,21 +22,36 @@ pub(crate) fn entries(listing: &[FolderEntry]) -> String {
 
 pub(crate) fn search(results: &SearchResults, output: Output) -> String {
     let mut text = String::new();
-    for hit in &results.pages {
-        let place = hit
-            .line_number
-            .map_or_else(String::new, |line| format!(":{line}"));
-        let line = hit.line.as_deref().unwrap_or_default();
-        let _ = writeln!(text, "{}{place}  {line}", output.bold(&hit.path));
+    for hit in &results.hits {
+        text.push_str(&hit_line(hit, output, ""));
     }
-    for hit in &results.files {
-        let page = hit
-            .page
-            .map_or_else(String::new, |page| format!(" (page {page})"));
-        let line = hit.line.as_deref().unwrap_or_default();
-        let _ = writeln!(text, "{}{page}  {line}", output.bold(&hit.path));
+    for folder in &results.folders {
+        let count = if folder.matches == 1 {
+            "1 match".to_owned()
+        } else {
+            format!("{} matches", folder.matches)
+        };
+        let _ = writeln!(
+            text,
+            "{}/  {}",
+            output.bold(&folder.path),
+            output.dim(&count)
+        );
+        for hit in &folder.hits {
+            text.push_str(&hit_line(hit, output, "  "));
+        }
     }
     text
+}
+
+fn hit_line(hit: &SearchHit, output: Output, indent: &str) -> String {
+    let place = match (hit.kind, hit.page, hit.line_number) {
+        (HitKind::File, Some(page), _) => format!(" (page {page})"),
+        (HitKind::Page, _, Some(line)) => format!(":{line}"),
+        _ => String::new(),
+    };
+    let line = hit.line.as_deref().unwrap_or_default();
+    format!("{indent}{}{place}  {line}\n", output.bold(&hit.path))
 }
 
 pub(crate) fn versions(list: &VersionList, output: Output) -> String {
@@ -107,7 +123,7 @@ fn operation(op: Operation) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use openmemory_api::{ChangeGroup, ChangedVersion, PageHit};
+    use openmemory_api::{ChangeGroup, ChangedVersion, FolderHits};
 
     use super::*;
 
@@ -130,22 +146,40 @@ mod tests {
         assert_eq!(entries(&listing), "clients/\nstart\n");
     }
 
+    fn hit(kind: HitKind, path: &str, page: Option<u32>, line_number: Option<u32>) -> SearchHit {
+        SearchHit {
+            kind,
+            id: 1,
+            path: path.to_owned(),
+            page,
+            line_number,
+            line: Some("fee: 10".to_owned()),
+            author: "mino".to_owned(),
+            at: "2026-11-24".to_owned(),
+        }
+    }
+
     #[test]
-    fn search_hits_show_path_line_and_text() {
+    fn search_shows_hits_then_each_folder_with_its_count() {
         let results = SearchResults {
-            pages: vec![PageHit {
-                page_id: 1,
-                path: "clients/acme".to_owned(),
-                line_number: Some(4),
-                line: Some("fee: 10".to_owned()),
-                author: "mino".to_owned(),
-                at: "2026-11-24".to_owned(),
+            hits: vec![hit(HitKind::Page, "clients/acme", None, Some(4))],
+            folders: vec![FolderHits {
+                path: "clients/archive".to_owned(),
+                matches: 12,
+                hits: vec![hit(
+                    HitKind::File,
+                    "clients/archive/a.pdf",
+                    Some(2),
+                    Some(1),
+                )],
             }],
-            files: Vec::new(),
             next: None,
             no_hits: None,
         };
-        assert_eq!(search(&results, plain()), "clients/acme:4  fee: 10\n");
+        assert_eq!(
+            search(&results, plain()),
+            "clients/acme:4  fee: 10\nclients/archive/  12 matches\n  clients/archive/a.pdf (page 2)  fee: 10\n"
+        );
     }
 
     #[test]

@@ -99,7 +99,7 @@ async fn purging_a_page_removes_every_version_and_leaves_a_tombstone(pool: PgPoo
         StatusCode::NOT_FOUND
     );
     assert!(
-        admin.get("/api/search?q=Vendor").await?.body["pages"]
+        admin.get("/api/search?q=Vendor").await?.body["hits"]
             .as_array()
             .is_some_and(Vec::is_empty)
     );

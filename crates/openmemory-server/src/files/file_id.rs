@@ -1,7 +1,18 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, sqlx::Type, Serialize, Deserialize, utoipa::ToSchema,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    sqlx::Type,
+    Serialize,
+    Deserialize,
+    utoipa::ToSchema,
 )]
 #[sqlx(transparent)]
 #[serde(transparent)]

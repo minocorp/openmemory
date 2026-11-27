@@ -8,4 +8,6 @@ pub(crate) enum SearchError {
     Where(#[from] WhereError),
     #[error("folder is not a valid path")]
     Folder(#[source] PagePathError),
+    #[error("cursor is not valid")]
+    Cursor,
 }

@@ -15,6 +15,6 @@ pub use relocate::{DeleteInput, MoveInput, MoveOutput};
 pub use revert::{
     BlockReason, BlockedPage, RevertInput, RevertInputError, RevertOutput, RevertTarget,
 };
-pub use search::{HitKind, NoHits, SearchHit, SearchInput, SearchOutput};
+pub use search::{FolderHits, HitKind, NoHits, SearchHit, SearchInput, SearchOutput};
 pub use upload::{MAX_INLINE_UPLOAD_BYTES, UploadInput, UploadOutput};
 pub use write::{Append, Replacement, WriteAction, WriteInput, WriteInputError, WriteOutput};
