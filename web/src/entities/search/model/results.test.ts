@@ -2,27 +2,42 @@ import { describe, expect, it } from "vitest";
 
 import { flattenResults, toSearchResults } from "./results";
 
+const hit = { author: "mino", at: "t" };
+
 const view = {
-  pages: [
-    { page_id: 1, path: "a/b", line_number: 3, line: "fee", author: "mino", at: "t" },
-    { page_id: 2, path: "c", author: "mino", at: "t" },
+  hits: [
+    { ...hit, kind: "page" as const, id: 1, path: "a/b", line_number: 3, line: "fee" },
+    { ...hit, kind: "file" as const, id: 9, path: "a/x.pdf", page: 2, line_number: 1, line: "hi" },
   ],
-  files: [{ file_id: 9, path: "x.pdf", page: 2, line_number: 1, line: "hi", author: "m", at: "t" }],
+  folders: [
+    {
+      path: "a/c",
+      matches: 12,
+      hits: [{ ...hit, kind: "page" as const, id: 2, path: "a/c/d", line: "fee" }],
+    },
+  ],
 };
 
 describe("toSearchResults", () => {
-  it("maps page and file hits and keeps the PDF page", () => {
+  it("keeps the order of hits and the PDF page of a file", () => {
     const results = toSearchResults(view);
-    expect(results.pages.map((hit) => [hit.path, hit.line])).toEqual([
-      ["a/b", "fee"],
-      ["c", null],
+    expect(results.hits.map((result) => [result.kind, result.path, result.filePage])).toEqual([
+      ["page", "a/b", null],
+      ["file", "a/x.pdf", 2],
     ]);
-    expect(results.files[0]).toMatchObject({ path: "x.pdf", filePage: 2, kind: "file" });
   });
 
-  it("lists pages before files with unique keys", () => {
+  it("ends each folder with an entry that searches the whole folder", () => {
+    const [folder] = toSearchResults(view).folders;
+    expect(folder?.results.map((result) => [result.kind, result.path, result.matches])).toEqual([
+      ["page", "a/c/d", null],
+      ["folder", "a/c", 12],
+    ]);
+  });
+
+  it("flattens hits before folders with unique keys", () => {
     const flat = flattenResults(toSearchResults(view));
-    expect(flat.map((hit) => hit.kind)).toEqual(["page", "page", "file"]);
-    expect(new Set(flat.map((hit) => hit.key)).size).toBe(3);
+    expect(flat.map((result) => result.path)).toEqual(["a/b", "a/x.pdf", "a/c/d", "a/c"]);
+    expect(new Set(flat.map((result) => result.key)).size).toBe(4);
   });
 });

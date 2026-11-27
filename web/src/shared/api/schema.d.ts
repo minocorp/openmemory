@@ -988,18 +988,6 @@ export interface components {
             key: string;
             values: string[];
         };
-        FileHit: {
-            at: string;
-            author: string;
-            /** Format: int64 */
-            file_id: number;
-            line?: string | null;
-            /** Format: int32 */
-            line_number?: number | null;
-            /** Format: int32 */
-            page?: number | null;
-            path: string;
-        };
         FileSourceView: {
             /** Format: int32 */
             page?: number | null;
@@ -1030,6 +1018,12 @@ export interface components {
             kind: components["schemas"]["EntryKind"];
             name: string;
         };
+        FolderHits: {
+            hits: components["schemas"]["SearchHit"][];
+            /** Format: int32 */
+            matches: number;
+            path: string;
+        };
         FolderListing: {
             entries: components["schemas"]["FolderEntry"][];
             next?: string | null;
@@ -1038,6 +1032,8 @@ export interface components {
         GroupReverted: {
             reverted: components["schemas"]["Written"][];
         };
+        /** @enum {string} */
+        HitKind: "page" | "file";
         ImportReport: {
             files: number;
             pages: number;
@@ -1105,16 +1101,6 @@ export interface components {
             append?: components["schemas"]["AppendBody"] | null;
             replace?: components["schemas"]["ReplaceBody"] | null;
             task?: string | null;
-        };
-        PageHit: {
-            at: string;
-            author: string;
-            line?: string | null;
-            /** Format: int32 */
-            line_number?: number | null;
-            /** Format: int64 */
-            page_id: number;
-            path: string;
         };
         PageMove: {
             task?: string | null;
@@ -1194,11 +1180,24 @@ export interface components {
         Restored: {
             reverted: components["schemas"]["Written"][];
         };
+        SearchHit: {
+            at: string;
+            author: string;
+            /** Format: int64 */
+            id: number;
+            kind: components["schemas"]["HitKind"];
+            line?: string | null;
+            /** Format: int32 */
+            line_number?: number | null;
+            /** Format: int32 */
+            page?: number | null;
+            path: string;
+        };
         SearchResults: {
-            files: components["schemas"]["FileHit"][];
+            folders: components["schemas"]["FolderHits"][];
+            hits: components["schemas"]["SearchHit"][];
             next?: string | null;
             no_hits?: components["schemas"]["NoHits"] | null;
-            pages: components["schemas"]["PageHit"][];
         };
         SeenRequest: {
             /** Format: int64 */
@@ -3651,7 +3650,7 @@ export interface operations {
     search: {
         parameters: {
             query?: {
-                /** @description Literal text */
+                /** @description Words; each must occur in the path or text, ignoring case */
                 q?: string;
                 /** @description Field conditions, ANDed; repeat the parameter */
                 where?: string[];
