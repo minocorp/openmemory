@@ -3,6 +3,7 @@ use serde_json::json;
 use sqlx::PgPool;
 
 use crate::pages::{PAGE, created_id};
+use crate::sse::SseReader;
 use crate::support::{App, TestResult};
 
 #[sqlx::test]
@@ -177,5 +178,59 @@ async fn change_routes_need_a_session(pool: PgPool) -> TestResult {
             .status,
         StatusCode::UNAUTHORIZED
     );
+    Ok(())
+}
+
+#[sqlx::test]
+async fn the_change_stream_resumes_after_the_last_event_id(pool: PgPool) -> TestResult {
+    let app = App::new(pool);
+    let (admin, _) = app.admin().await?;
+    let member = app.member(&admin, "member").await?;
+    let opened = admin.open("/api/changes/stream", &[]).await?;
+    assert_eq!(opened.status(), StatusCode::OK);
+    assert_eq!(
+        opened.headers()["content-type"],
+        "text/event-stream",
+        "{:?}",
+        opened.headers()
+    );
+    let ready = SseReader::new(opened).next_event().await?;
+    assert_eq!(ready.name, "ready");
+    assert_eq!(ready.data, json!({"resumed": false}));
+
+    let id = created_id(&member, "clients/acme", PAGE).await?;
+    let mut resumed = SseReader::new(
+        admin
+            .open("/api/changes/stream", &[("last-event-id", &ready.id)])
+            .await?,
+    );
+    let again = resumed.next_event().await?;
+    assert_eq!(
+        (again.name, again.data),
+        ("ready".to_owned(), json!({"resumed": true}))
+    );
+    let change = resumed.next_event().await?;
+    assert_eq!(change.name, "change");
+    assert_eq!(
+        change.data,
+        json!({
+            "kind": "page",
+            "id": id,
+            "version": 1,
+            "op": "create",
+            "path": "clients/acme",
+            "previous_path": null
+        })
+    );
+    assert_ne!(change.id, ready.id);
+    Ok(())
+}
+
+#[sqlx::test]
+async fn the_change_stream_needs_a_session(pool: PgPool) -> TestResult {
+    let app = App::new(pool);
+    let stranger = app.browser();
+    let opened = stranger.open("/api/changes/stream", &[]).await?;
+    assert_eq!(opened.status(), StatusCode::UNAUTHORIZED);
     Ok(())
 }

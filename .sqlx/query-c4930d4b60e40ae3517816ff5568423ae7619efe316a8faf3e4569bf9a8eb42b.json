@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  s.system_identifier AS \"system!\",\n  ('x' || left(pg_walfile_name(pg_current_wal_lsn()), 8))::bit(32)::integer AS \"timeline!\",\n  (SELECT COALESCE(max(seq), 0) FROM journal) AS \"head!: Seq\"\nFROM pg_control_system() AS s",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "system!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "timeline!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "head!: Seq",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "c4930d4b60e40ae3517816ff5568423ae7619efe316a8faf3e4569bf9a8eb42b"
+}

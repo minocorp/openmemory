@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE users\nSET last_seen_seq = GREATEST(\n  last_seen_seq,\n  LEAST($2, (SELECT COALESCE(MAX(seq), 0) FROM page_versions))\n)\nWHERE id = $1\nRETURNING last_seen_seq AS \"last_seen_seq: Seq\"",
+  "query": "UPDATE users\nSET last_seen_seq = GREATEST(\n  last_seen_seq,\n  LEAST($2, (SELECT COALESCE(max(seq), 0) FROM journal))\n)\nWHERE id = $1\nRETURNING last_seen_seq AS \"last_seen_seq: Seq\"",
   "describe": {
     "columns": [
       {
@@ -25,5 +25,5 @@
       false
     ]
   },
-  "hash": "acf746548c82d384e6bd9e16c42c7d6a99c307b15cded37d18ad4ca66372cc22"
+  "hash": "3a55bee70e37bdc4784fa573e289f90a4dbf09a495688a457787c4bf29086d00"
 }

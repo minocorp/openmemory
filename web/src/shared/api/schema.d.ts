@@ -308,6 +308,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/changes/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["stream_changes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/changes/{group}/revert": {
         parameters: {
             query?: never;
@@ -887,6 +903,31 @@ export interface components {
             challenge: string;
             options: Record<string, unknown>;
         };
+        ChangeEvent: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            kind: "page";
+            op: components["schemas"]["Operation"];
+            path?: string | null;
+            previous_path?: string | null;
+            /** Format: int32 */
+            version: number;
+        } | {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            kind: "file";
+            op: components["schemas"]["FileOperation"];
+            path: string;
+        } | {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            kind: "purge";
+            path: string;
+            subject: components["schemas"]["PurgedKind"];
+        };
         ChangeGroup: {
             at: string;
             author: string;
@@ -988,6 +1029,8 @@ export interface components {
             key: string;
             values: string[];
         };
+        /** @enum {string} */
+        FileOperation: "upload" | "delete";
         FileSourceView: {
             /** Format: int32 */
             page?: number | null;
@@ -1152,6 +1195,8 @@ export interface components {
             challenge: string;
             credential: Record<string, unknown>;
         };
+        /** @enum {string} */
+        PurgedKind: "page" | "file";
         Recovered: {
             recovery_code: string;
             user_id: components["schemas"]["UserId"];
@@ -1229,6 +1274,9 @@ export interface components {
         Skipped: {
             name: string;
             reason: components["schemas"]["SkipReason"];
+        };
+        StreamReady: {
+            resumed: boolean;
         };
         SystemStatus: {
             backup?: components["schemas"]["BackupReport"] | null;
@@ -2027,6 +2075,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SeenState"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    stream_changes: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The id of the last event received; the stream resumes after it */
+                "Last-Event-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-sent events. `ready` (StreamReady) comes first; when `resumed` is false, everything read before may be stale. Then `change` (ChangeEvent), in commit order. Every id resumes the stream. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
                 };
             };
             401: {

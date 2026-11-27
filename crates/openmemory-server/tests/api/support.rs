@@ -239,6 +239,20 @@ impl Browser {
         })
     }
 
+    pub(crate) async fn open(
+        &self,
+        path: &str,
+        headers: &[(&str, &str)],
+    ) -> TestResult<axum::response::Response> {
+        let mut request = self.request(Method::GET, path, None);
+        for (name, value) in headers {
+            request
+                .headers_mut()
+                .insert(axum::http::HeaderName::try_from(*name)?, value.parse()?);
+        }
+        Ok(self.router.clone().oneshot(request).await?)
+    }
+
     pub(crate) async fn delete(&self, path: &str) -> TestResult<Reply> {
         self.send(self.request(Method::DELETE, path, None)).await
     }

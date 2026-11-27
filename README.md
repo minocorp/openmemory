@@ -9,6 +9,7 @@ People and agents read and write the same pages. Every change is recorded with i
 - Pages: markdown with fields, current truth and an append-only timeline
 - Agents: Claude Code, Claude, ChatGPT, Codex and Cursor over MCP
 - People: web app with passkey sign-in, and the `openmemory` CLI
+- Live: an open page shows changes from agents and other people as they happen, and an unsaved edit is merged with them when the lines do not overlap
 - Search: Korean and English, over pages and PDF text
 - Backups: continuous, encrypted, with point-in-time restore
 

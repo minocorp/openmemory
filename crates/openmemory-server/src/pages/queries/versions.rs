@@ -2,7 +2,7 @@ use sqlx::PgConnection;
 use time::OffsetDateTime;
 
 use crate::access::Actor;
-use crate::pages::ids::{GroupId, PageId, Seq, VersionNumber};
+use crate::pages::ids::{GroupId, PageId, VersionNumber};
 
 #[derive(Debug, Clone)]
 pub(crate) struct VersionRow {
@@ -29,8 +29,8 @@ pub(crate) async fn insert(
     conn: &mut PgConnection,
     actor: &Actor,
     version: &NewVersion<'_>,
-) -> Result<Seq, sqlx::Error> {
-    sqlx::query_scalar!(
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
         r#"INSERT INTO page_versions (
   page_id,
   n,
@@ -43,8 +43,7 @@ pub(crate) async fn insert(
   author_name,
   group_id
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING seq AS "seq: Seq""#,
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
         version.page_id as PageId,
         version.n as VersionNumber,
         version.content,
@@ -56,8 +55,9 @@ RETURNING seq AS "seq: Seq""#,
         actor.name,
         version.group_id as GroupId
     )
-    .fetch_one(conn)
-    .await
+    .execute(conn)
+    .await?;
+    Ok(())
 }
 
 pub(crate) async fn find(

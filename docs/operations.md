@@ -12,6 +12,8 @@ docker compose logs server | grep bootstrap
 
 Fill `.env` first. Use letters and digits in `OPENMEMORY_DB_PASSWORD`. The log line holds the one-time link that creates the first admin.
 
+Each open web tab keeps one server-sent event stream at `/api/changes/stream`, so pages update while you look at them. The server sends a keep-alive every 20 seconds and the header `X-Accel-Buffering: no`. The proxy must not buffer that response and must not close an idle connection in less than 20 seconds.
+
 The server listens on `OPENMEMORY_HTTP_BIND` (default `127.0.0.1:8080`). If your proxy is not on the host, bind another address and list the proxy in `OPENMEMORY_TRUSTED_PROXIES`. The rate limiter then reads `X-Forwarded-For` from those peers only; otherwise it uses the socket peer.
 
 ## Environment

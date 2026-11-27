@@ -1,0 +1,161 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  j.seq AS \"seq!: Seq\",\n  j.page_id AS \"page_id?: PageId\",\n  j.n AS \"n?: VersionNumber\",\n  v.path AS \"page_path?\",\n  v.op AS \"page_op?\",\n  previous.path AS \"previous_path?\",\n  j.file_id AS \"file_id?: FileId\",\n  j.file_op AS \"file_op?\",\n  f.path AS \"file_path?\",\n  p.kind AS \"purge_kind?\",\n  p.subject_id AS \"purge_subject_id?\",\n  p.path AS \"purge_path?\"\nFROM journal AS j\nLEFT JOIN page_versions AS v ON v.page_id = j.page_id AND v.n = j.n\nLEFT JOIN page_versions AS previous ON previous.page_id = j.page_id AND previous.n = j.n - 1\nLEFT JOIN files AS f ON f.id = j.file_id\nLEFT JOIN purges AS p ON p.id = j.purge_id\nWHERE j.seq > $1\nORDER BY j.seq\nLIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "seq!: Seq",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "journal",
+            "name": "seq"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "page_id?: PageId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "journal",
+            "name": "page_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "n?: VersionNumber",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "journal",
+            "name": "n"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "page_path?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "page_op?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "op"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "previous_path?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_versions",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "file_id?: FileId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "journal",
+            "name": "file_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "file_op?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "journal",
+            "name": "file_op"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "file_path?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "purge_kind?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purges",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "purge_subject_id?",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purges",
+            "name": "subject_id"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "purge_path?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purges",
+            "name": "path"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "dfff78d3ed3ae386f159b9e4ca3b14e83d35430e5df7907a92edceebf4b7f6a3"
+}

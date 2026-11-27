@@ -15,6 +15,14 @@ impl Subject {
             Self::File => "file",
         }
     }
+
+    pub(crate) fn parse(text: &str) -> Option<Self> {
+        match text {
+            "page" => Some(Self::Page),
+            "file" => Some(Self::File),
+            _ => None,
+        }
+    }
 }
 
 pub(crate) async fn record(

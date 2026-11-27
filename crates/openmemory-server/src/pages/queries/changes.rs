@@ -35,7 +35,7 @@ pub(crate) async fn list_since(
   g.task,
   v.page_id AS "page_id: PageId",
   v.n AS "n: VersionNumber",
-  v.seq AS "seq: Seq",
+  j.seq AS "seq!: Seq",
   v.path,
   v.op,
   v.author_name,
@@ -43,14 +43,15 @@ pub(crate) async fn list_since(
   v.created_at,
   v.content,
   previous.content AS "previous_content?"
-FROM page_versions AS v
+FROM journal AS j
+JOIN page_versions AS v ON v.page_id = j.page_id AND v.n = j.n
 JOIN change_groups AS g ON g.id = v.group_id
 JOIN users AS u ON u.id = v.user_id
 LEFT JOIN page_versions AS previous ON previous.page_id = v.page_id AND previous.n = v.n - 1
-WHERE v.seq > $1
+WHERE j.seq > $1
   AND ($2 OR v.path = ANY($3) OR v.path LIKE ANY($4))
   AND (v.user_id <> $6 OR v.connection_id IS NOT NULL)
-ORDER BY v.seq
+ORDER BY j.seq
 LIMIT $5"#,
         since as Seq,
         scope.unrestricted,
@@ -84,7 +85,7 @@ pub(crate) async fn mark_seen(
         r#"UPDATE users
 SET last_seen_seq = GREATEST(
   last_seen_seq,
-  LEAST($2, (SELECT COALESCE(MAX(seq), 0) FROM page_versions))
+  LEAST($2, (SELECT COALESCE(max(seq), 0) FROM journal))
 )
 WHERE id = $1
 RETURNING last_seen_seq AS "last_seen_seq: Seq""#,

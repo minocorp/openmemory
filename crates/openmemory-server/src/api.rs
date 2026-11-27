@@ -72,6 +72,10 @@ pub(crate) fn router() -> Router<AppState> {
         .merge(purge::router())
 }
 
+pub(crate) fn streams() -> Router<AppState> {
+    changes::streams()
+}
+
 pub(crate) fn openapi() -> utoipa::openapi::OpenApi {
     let mut document = Root::openapi();
     for part in [
